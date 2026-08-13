@@ -1,4 +1,4 @@
-"""Bankr-style rails: dry-run, rate limit, circuit breaker, fail-closed approval."""
+"""Bankr-style rails: dry-run, rate limit, circuit breaker, daily budget. X-only — no Telegram."""
 
 from __future__ import annotations
 
@@ -93,8 +93,6 @@ class Guard:
             return False, "rate_limited"
         if self.budget.remaining() <= 0:
             return False, "daily_budget_exhausted"
-        if s.require_approval and not (s.telegram_bot_token and s.telegram_chat_id):
-            return False, "approval_required_but_telegram_missing"
         return True, "ok"
 
     def on_success(self) -> None:
