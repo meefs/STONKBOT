@@ -129,7 +129,13 @@ count + hard cap. Correct it.
 Bot (needs persistent volume for `data/`):
 - Required: `AGENT_VAULT_KEY` (32+ chars; **losing/changing strands every
   wallet**), `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`,
-  `X_ACCESS_TOKEN_SECRET`, `X_BOT_USERNAME`, `STONKBOT_DRY_RUN`
+  `X_ACCESS_TOKEN_SECRET`, `STONKBOT_DRY_RUN`
+- `X_BOT_USERNAME` is now advisory only: the loop calls `get_me()` and trusts
+  the handle the token actually authenticates as, logging a warning on
+  mismatch. Set it anyway as a tripwire against wiring the wrong account.
+- The X surface is **v2** (`tweepy.Client`). v1.1 `statuses/mentions_timeline`
+  and `statuses/update` are retired — do not reintroduce `tweepy.API`.
+  Auth is OAuth 1.0a user context, not app-only bearer: replies need it.
 - Recommended: `SOLANA_RPC_URL` (dedicated; public endpoint rate-limited),
   `STONKBOT_FEE_RECIPIENT`, `STONKBOT_MAX_LAUNCH_COST_SOL`, `STONKBOT_DATA_DIR`
 

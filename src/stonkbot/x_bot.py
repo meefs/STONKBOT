@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from .config import get_settings
@@ -43,7 +44,33 @@ EXAMPLE_COMMAND = "launch GameStop paired with GMEX"
 SYNTAX_HINT = f"Try: {EXAMPLE_COMMAND}"
 
 
+@dataclass(frozen=True)
+class Mention:
+    """One mention, flattened out of the v2 payload.
+
+    v2 returns author ids, not handles, and the handle only appears in the
+    ``includes.users`` expansion. Resolving that once here keeps the intent
+    handlers working on a plain object instead of threading `includes` through
+    every branch.
+    """
+
+    id: int
+    text: str
+    handle: str
+
+    @property
+    def id_str(self) -> str:
+        return str(self.id)
+
+
 def _api() -> Any:
+    """An OAuth 1.0a user-context v2 client.
+
+    v1.1 (``tweepy.API``) is retired: ``statuses/mentions_timeline`` and
+    ``statuses/update`` are gone, so this is ``tweepy.Client`` throughout.
+    OAuth 1.0a rather than bearer token because posting replies needs the user
+    context, not app-only auth.
+    """
     import tweepy
 
     s = get_settings()
@@ -51,37 +78,44 @@ def _api() -> Any:
         [s.x_api_key, s.x_api_secret, s.x_access_token, s.x_access_token_secret]
     ):
         raise RuntimeError("X API credentials missing")
-    auth = tweepy.OAuth1UserHandler(
-        s.x_api_key, s.x_api_secret, s.x_access_token, s.x_access_token_secret
+    return tweepy.Client(
+        consumer_key=s.x_api_key,
+        consumer_secret=s.x_api_secret,
+        access_token=s.x_access_token,
+        access_token_secret=s.x_access_token_secret,
+        wait_on_rate_limit=True,
     )
-    return tweepy.API(auth, wait_on_rate_limit=True)
+
+
+def _resolve_bot(api: Any) -> tuple[str, str]:
+    """(user id, handle) of the authenticated account.
+
+    v2 mentions are fetched by numeric user id, so this call is required before
+    the first poll. The handle it returns is authoritative — a mistyped
+    ``X_BOT_USERNAME`` would otherwise leave the bot replying to itself.
+    """
+    me = api.get_me(user_auth=True)
+    if not me or not me.data:
+        raise RuntimeError("X get_me returned no user — check the access token")
+    return str(me.data.id), str(me.data.username)
 
 
 def reply(api: Any, status_id: str, text: str) -> None:
     try:
-        api.update_status(
-            status=text[:MAX_REPLY_LENGTH],
-            in_reply_to_status_id=status_id,
-            auto_populate_reply_metadata=True,
+        api.create_tweet(
+            text=text[:MAX_REPLY_LENGTH],
+            in_reply_to_tweet_id=status_id,
+            user_auth=True,
         )
     except Exception:
         # Never let a failed reply take down the poll loop.
         log.exception("reply to %s failed", status_id)
 
 
-def _tweet_text(status: Any) -> str:
-    """Full text of a tweet, whether or not it was truncated by the API."""
-    for attribute in ("full_text", "text"):
-        value = getattr(status, attribute, None)
-        if value:
-            return str(value)
-    return ""
-
-
-def handle_mention(api: Any, status: Any) -> None:
+def handle_mention(api: Any, status: Mention) -> None:
     settings = get_settings()
-    handle = status.user.screen_name
-    text = _tweet_text(status)
+    handle = status.handle
+    text = status.text
 
     bot_username = (settings.x_bot_username or "").lstrip("@")
     if bot_username:
@@ -153,7 +187,9 @@ def handle_mention(api: Any, status: Any) -> None:
     reply(api, status.id_str, f"{SYNTAX_HINT}\nOr: register | balance | ref | help")
 
 
-def _handle_launch(api: Any, status: Any, handle: str, intent: Any, settings) -> None:
+def _handle_launch(
+    api: Any, status: Mention, handle: str, intent: Any, settings
+) -> None:
     account = get_agent(handle)
     if not account:
         reply(api, status.id_str, "Register first: register")
@@ -209,17 +245,61 @@ def _handle_launch(api: Any, status: Any, handle: str, intent: Any, settings) ->
         reply(api, status.id_str, result.message or error("launch failed"))
 
 
+def _fetch_mentions(api: Any, bot_id: str, since_id: int | None) -> list[Mention]:
+    """One page of mentions, oldest first, with handles resolved.
+
+    ``max_results`` is capped at 100 by the API and floored at 5; 20 matches
+    the old v1.1 ``count`` and keeps per-poll cost predictable on pay-per-use
+    billing.
+    """
+    response = api.get_users_mentions(
+        id=bot_id,
+        since_id=since_id or None,
+        max_results=20,
+        expansions=["author_id"],
+        tweet_fields=["author_id"],
+        user_fields=["username"],
+        user_auth=True,
+    )
+
+    tweets = response.data or []
+    users = {u.id: u.username for u in (response.includes or {}).get("users", [])}
+
+    mentions = []
+    for tweet in tweets:
+        handle = users.get(tweet.author_id)
+        if not handle:
+            # No expansion for this author (deleted/suspended mid-page). The
+            # handle keys the wallet vault, so guessing one is not an option.
+            log.warning("mention %s has no resolvable author, skipping", tweet.id)
+            continue
+        mentions.append(Mention(id=tweet.id, text=tweet.text, handle=handle))
+
+    # v2 returns newest first; the loop's since_id bookkeeping wants oldest first.
+    return list(reversed(mentions))
+
+
 def run_poll_loop(poll_seconds: int = 30) -> None:
     api = _api()
     settings = get_settings()
-    bot_username = (settings.x_bot_username or "").lstrip("@").lower()
 
-    if not bot_username:
-        log.warning("X_BOT_USERNAME not set — cannot filter the bot's own tweets")
+    bot_id, resolved_handle = _resolve_bot(api)
+    configured = (settings.x_bot_username or "").lstrip("@").lower()
+    bot_username = resolved_handle.lower()
+
+    if configured and configured != bot_username:
+        log.warning(
+            "X_BOT_USERNAME=%s but the token authenticates as @%s — using @%s",
+            configured,
+            resolved_handle,
+            resolved_handle,
+        )
 
     since_id = get_since_id()
     log.info(
-        "STONKBOT up dry_run=%s since_id=%s",
+        "STONKBOT up as @%s (id=%s) dry_run=%s since_id=%s",
+        resolved_handle,
+        bot_id,
         settings.dry_run,
         since_id or "(start of timeline)",
     )
@@ -228,17 +308,13 @@ def run_poll_loop(poll_seconds: int = 30) -> None:
 
     while True:
         try:
-            kwargs: dict = {"count": 20, "tweet_mode": "extended"}
-            if since_id:
-                kwargs["since_id"] = since_id
-
-            mentions = api.mentions_timeline(**kwargs)
+            mentions = _fetch_mentions(api, bot_id, since_id)
             highest = since_id or 0
 
-            for status in reversed(mentions):
+            for status in mentions:
                 highest = max(highest, status.id)
 
-                if bot_username and status.user.screen_name.lower() == bot_username:
+                if status.handle.lower() == bot_username:
                     continue
                 if not mark_seen(status.id_str):
                     log.debug("already handled %s", status.id_str)
