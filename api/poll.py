@@ -45,6 +45,27 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this name
             self._respond(401, {"ok": False, "error": "unauthorized"})
             return
 
+        # Refuse to run on the ephemeral filesystem. Without Postgres the state
+        # layer falls back to SQLite, and a function disk does not survive the
+        # invocation: the wallet vault would be recreated empty every tick, so
+        # a user could register, be handed a real address, fund it, and have
+        # the key vanish. Failing closed here is the difference between a
+        # visible outage and silently stranded funds.
+        if not (os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")):
+            log.error("DATABASE_URL unset — refusing to run on ephemeral storage")
+            self._respond(
+                503,
+                {
+                    "ok": False,
+                    "error": "no_durable_store",
+                    "detail": (
+                        "DATABASE_URL is not set. Serverless disks are ephemeral, "
+                        "so the wallet vault would not survive this invocation."
+                    ),
+                },
+            )
+            return
+
         try:
             from stonkbot.x_bot import poll_once_standalone
 
