@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-IntentKind = Literal["register", "launch", "whoami", "help", "balance", "unknown"]
+IntentKind = Literal["register", "launch", "whoami", "help", "balance", "ref", "unknown"]
 
 
 @dataclass
@@ -15,6 +15,7 @@ class Intent:
     name: str | None = None
     symbol: str | None = None
     quote: str | None = None
+    ref: str | None = None
     raw: str = ""
 
 
@@ -22,6 +23,10 @@ _REGISTER_RE = re.compile(r"\b(register|signup|sign up|create wallet|start)\b", 
 _BALANCE_RE = re.compile(r"\b(balance|funded|funds)\b", re.I)
 _WHO_RE = re.compile(r"\b(whoami|my wallet|wallet|account)\b", re.I)
 _HELP_RE = re.compile(r"\b(help|how|commands)\b", re.I)
+_REF_CMD_RE = re.compile(r"^(?:ref|referral|invite)\b", re.I)
+_REF_INLINE_RE = re.compile(
+    r"\b(?:ref|referral)\s+@?([A-Za-z0-9_]{1,15})\b", re.I
+)
 _SIMPLE_LAUNCH = re.compile(
     r"(?:launch|deploy)\s+([A-Za-z0-9][A-Za-z0-9 \-]{1,40}?)\s+(?:paired\s+with|vs|against)\s+([A-Za-z0-9x]{2,16})",
     re.I,
@@ -34,15 +39,27 @@ _LAUNCH_RE = re.compile(
 )
 
 
+def _extract_ref(text: str) -> str | None:
+    m = _REF_INLINE_RE.search(text or "")
+    if not m:
+        return None
+    return m.group(1).lstrip("@").lower()
+
+
 def parse(text: str) -> Intent:
     t = (text or "").strip()
     if not t:
         return Intent(kind="unknown", raw=t)
 
-    if _HELP_RE.search(t) and not _LAUNCH_RE.search(t):
+    ref = _extract_ref(t)
+
+    if _REF_CMD_RE.match(t) and not _SIMPLE_LAUNCH.search(t) and not _LAUNCH_RE.search(t):
+        return Intent(kind="ref", ref=ref, raw=t)
+
+    if _HELP_RE.search(t) and not _LAUNCH_RE.search(t) and not _SIMPLE_LAUNCH.search(t):
         return Intent(kind="help", raw=t)
     if _REGISTER_RE.search(t):
-        return Intent(kind="register", raw=t)
+        return Intent(kind="register", ref=ref, raw=t)
     if _BALANCE_RE.search(t):
         return Intent(kind="balance", raw=t)
     if _WHO_RE.search(t):
@@ -53,7 +70,7 @@ def parse(text: str) -> Intent:
         name = m2.group(1).strip()
         quote = m2.group(2).strip().upper()
         symbol = re.sub(r"[^A-Za-z0-9]", "", name)[:10].upper() or "STONK"
-        return Intent(kind="launch", name=name, symbol=symbol, quote=quote, raw=t)
+        return Intent(kind="launch", name=name, symbol=symbol, quote=quote, ref=ref, raw=t)
 
     m = _LAUNCH_RE.search(t)
     if m:
@@ -61,7 +78,7 @@ def parse(text: str) -> Intent:
         symbol = (m.group(2) or re.sub(r"[^A-Za-z0-9]", "", name)[:10] or "STONK").upper()
         quote = (m.group(3) or "").upper() or None
         if name:
-            return Intent(kind="launch", name=name, symbol=symbol, quote=quote, raw=t)
+            return Intent(kind="launch", name=name, symbol=symbol, quote=quote, ref=ref, raw=t)
 
     parts = t.split()
     if len(parts) >= 2 and parts[0].lower() in ("launch", "deploy"):
@@ -70,6 +87,7 @@ def parse(text: str) -> Intent:
             name=" ".join(parts[1:-1]) or parts[1],
             symbol=re.sub(r"[^A-Za-z0-9]", "", parts[1])[:10].upper(),
             quote=parts[-1].upper() if len(parts) > 2 else None,
+            ref=ref,
             raw=t,
         )
 
