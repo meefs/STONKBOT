@@ -1,61 +1,39 @@
 # STONKBOT
 
-Fully automated **X-only** bot for [StonkFun](https://www.stonkfun.xyz).
+Bankr-style X bot for [StonkFun](https://www.stonkfun.xyz).
 
-Handle: **@StonkFunBot**
+**@StonkFunBot**
 
-User mentions bot → bot hot wallet signs + deploys → token live on StonkFun.  
-No manual approvals.
+## Model (locked)
 
-## Economics
+1. User: `register` → bot creates **their agent wallet**
+2. User funds it (~0.35 SOL covers launch + service fee)
+3. User: `launch GameStop paired with GMEX`
+4. Bot signs with **their** wallet → **they are creator** → **they keep 50% trading fees**
+5. On success, **0.1 SOL service fee** → `GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS`
 
-| Item | Value |
-|------|-------|
-| Creator wallet | Bot hot wallet (automated) |
-| Trading fee share (50%) | Lands in bot hot wallet → sweep to you |
-| Fee destination | `GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS` |
-| Surface | X mentions only |
-| Security | Dry-run default, rate limit, circuit breaker, daily budget |
-
-## Why bot is creator
-StonkFun requires the `creatorWallet` to sign the launch tx.  
-Full automation = bot holds a dedicated hot wallet and signs itself.  
-Users trigger launches; they do not sign.
+Your wallet only collects the service charge. Fully automated for you.
 
 ## Setup
 
 ```bash
-git clone https://github.com/PhantomCapAI/STONKBOT.git
-cd STONKBOT
 cp .env.example .env
-```
-
-Fill:
-1. X API keys for @StonkFunBot
-2. `STONKBOT_HOT_WALLET_SECRET` — keypair for a **new** wallet funded with a little SOL
-3. Keep `STONKBOT_DRY_RUN=true` until first test
-
-```bash
-pip install -r requirements.txt
-pip install -e .
+# Set X keys, AGENT_VAULT_KEY (long random string), keep DRY_RUN=true first
+pip install -r requirements.txt && pip install -e .
 python -m stonkbot.cli doctor
 python -m stonkbot.bot
 ```
 
-## User commands on X
+## User commands
 ```
+@StonkFunBot register
+@StonkFunBot balance
 @StonkFunBot launch GameStop paired with GMEX
-@StonkFunBot link <optional identity wallet>
-@StonkFunBot whoami
+@StonkFunBot help
 ```
 
-## Status
-- [x] StonkFun client
-- [x] Intent parser
-- [x] Hot wallet sign + submit
-- [x] X mention poller
-- [x] Dry-run / rate / circuit rails
-- [x] Fee event tracking
-- [ ] Optional auto-sweep of claimed creator fees to fee recipient
-
-Fund the hot wallet, set keys, flip dry-run when ready.
+## Security
+- Agent keypairs encrypted at rest (Fernet + AGENT_VAULT_KEY)
+- Secrets never logged or tweeted
+- Dry-run, rate limit, circuit breaker, daily budget
+- No Telegram — X only

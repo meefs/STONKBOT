@@ -1,7 +1,7 @@
 """Data shapes."""
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +21,7 @@ class LaunchRequest(BaseModel):
     creator_wallet: str
     mode: Literal["standard", "reward"] = "standard"
     logo_data_uri: str | None = None
-    dev_buy_percent: float | None = None  # max 2.5
+    dev_buy_percent: float | None = None
     website: str | None = None
     twitter: str | None = None
 
@@ -37,8 +37,8 @@ class LaunchResult(BaseModel):
     raw: dict[str, Any] = Field(default_factory=dict)
 
 
-class LinkedAccount(BaseModel):
+class AgentAccount(BaseModel):
     x_handle: str
-    solana_wallet: str
-    linked_at: datetime
+    pubkey: str
+    created_at: datetime
     active: bool = True

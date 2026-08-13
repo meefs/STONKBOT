@@ -1,4 +1,4 @@
-"""X-only surface: fully automated launches via bot hot wallet."""
+"""X surface — Bankr-style register + automated launch."""
 
 from __future__ import annotations
 
@@ -6,32 +6,32 @@ import logging
 import time
 from typing import Any
 
-from .accounts import get as get_account, link
 from .config import get_settings
 from .intent import parse
 from .launch import run_launch
 from .models import LaunchRequest
-from .responses import need_wallet, dry_run, success, error, fee_note
+from .responses import dry_run, success, error, fee_note
 from .security import guard
+from .solana_pay import get_balance_sol
 from .stonkfun_client import StonkFunClient
+from .vault import get as get_agent, register as register_agent
 
 log = logging.getLogger("stonkbot.x")
 
 HELP_TEXT = (
-    "Commands:\n"
-    "link <SOL_ADDRESS>  (optional identity)\n"
-    "launch <name> paired with <QUOTE>\n"
-    "whoami\n"
-    "Fully automated. 0.1 SOL service fee."
+    "1) register — get your agent wallet\n"
+    "2) fund it (~0.35 SOL)\n"
+    "3) launch <name> paired with <QUOTE>\n"
+    "You keep 50% creator fees. Service 0.1 SOL."
 )
 
 
-def _client_tweepy():
+def _api():
     import tweepy
 
     s = get_settings()
     if not all([s.x_api_key, s.x_api_secret, s.x_access_token, s.x_access_token_secret]):
-        raise RuntimeError("X API keys missing in env")
+        raise RuntimeError("X API keys missing")
     auth = tweepy.OAuth1UserHandler(
         s.x_api_key, s.x_api_secret, s.x_access_token, s.x_access_token_secret
     )
@@ -39,10 +39,9 @@ def _client_tweepy():
 
 
 def reply(api: Any, status_id: str, text: str) -> None:
-    text = text[:260]
     try:
         api.update_status(
-            status=text,
+            status=text[:260],
             in_reply_to_status_id=status_id,
             auto_include_user_mentions=True,
         )
@@ -58,36 +57,49 @@ def handle_mention(api: Any, status: Any) -> None:
         text = text.replace(f"@{s.x_bot_username}", "").strip()
 
     intent = parse(text)
-    log.info("@%s intent=%s", handle, intent.kind)
+    log.info("@%s → %s", handle, intent.kind)
 
     if intent.kind == "help":
         reply(api, status.id_str, HELP_TEXT)
         return
 
-    if intent.kind == "link":
-        if not intent.wallet:
-            reply(api, status.id_str, "Send: link <your Solana address>")
-            return
-        acc = link(handle, intent.wallet)
-        reply(api, status.id_str, f"Linked.\n@{acc.x_handle} → {acc.solana_wallet[:8]}…")
+    if intent.kind == "register":
+        try:
+            acc = register_agent(handle)
+            reply(
+                api,
+                status.id_str,
+                f"Agent wallet ready.\n{acc.pubkey}\nFund ~{s.min_launch_balance_sol} SOL then launch.",
+            )
+        except Exception as e:
+            reply(api, status.id_str, error(str(e)))
         return
 
-    if intent.kind == "whoami":
-        acc = get_account(handle)
+    if intent.kind in ("whoami", "balance"):
+        acc = get_agent(handle)
         if not acc:
-            reply(api, status.id_str, "No wallet linked. Optional: link <address>")
-        else:
-            reply(api, status.id_str, f"@{acc.x_handle}\n{acc.solana_wallet}")
+            reply(api, status.id_str, "Not registered. Say: register")
+            return
+        try:
+            bal = get_balance_sol(acc.pubkey)
+            reply(api, status.id_str, f"{acc.pubkey}\nBalance: {bal:.4f} SOL")
+        except Exception:
+            reply(api, status.id_str, f"{acc.pubkey}\n(balance check failed)")
         return
 
     if intent.kind == "launch":
+        acc = get_agent(handle)
+        if not acc:
+            reply(api, status.id_str, "Register first: register")
+            return
+
         ok, reason = guard.can_launch()
         if not ok and reason != "dry_run":
             reply(api, status.id_str, error(reason))
             return
 
         if not intent.quote:
-            reply(api, status.id_str, "Need a quote. Example: launch GameStop paired with GMEX")
+            reply(api, status.id_str, "Example: launch GameStop paired with GMEX")
             return
 
         client = StonkFunClient()
@@ -98,30 +110,26 @@ def handle_mention(api: Any, status: Any) -> None:
                 None,
             )
             if not match:
-                reply(api, status.id_str, error(f"quote not launchable: {intent.quote}"))
+                reply(api, status.id_str, error(f"bad quote: {intent.quote}"))
                 return
 
-            # creator forced to bot hot wallet inside run_launch
             req = LaunchRequest(
                 name=intent.name or intent.symbol or "Stonk",
                 symbol=(intent.symbol or "STONK")[:12],
                 quote_mint=match.mint,
-                creator_wallet="pending",  # overwritten by hot wallet
+                creator_wallet=acc.pubkey,
                 mode="standard",
             )
-
             result = run_launch(req, x_handle=handle)
 
             if result.status == "dry_run":
                 msg = dry_run(req.symbol, match.symbol)
                 msg += f"\n{fee_note(s.service_fee_sol)}"
                 reply(api, status.id_str, msg)
-                return
-
-            if result.status in ("completed", "processing"):
+            elif result.status in ("completed", "processing"):
                 reply(api, status.id_str, result.message or success(req.symbol, match.symbol, result.stonkfun_url or ""))
             else:
-                reply(api, status.id_str, result.message or error("launch failed"))
+                reply(api, status.id_str, result.message or error("failed"))
         except Exception as e:
             guard.on_failure()
             reply(api, status.id_str, error(str(e)))
@@ -129,28 +137,27 @@ def handle_mention(api: Any, status: Any) -> None:
             client.close()
         return
 
-    reply(api, status.id_str, "Try: launch <name> paired with <QUOTE>")
+    reply(api, status.id_str, "Say: register | launch <name> paired with <QUOTE> | help")
 
 
 def run_poll_loop(poll_seconds: int = 30) -> None:
     logging.basicConfig(level=logging.INFO)
-    api = _client_tweepy()
+    api = _api()
     s = get_settings()
     bot = (s.x_bot_username or "").lstrip("@").lower()
     since_id = None
-    log.info("STONKBOT X poller starting (dry_run=%s automated=True)", s.dry_run)
+    log.info("STONKBOT up dry_run=%s model=agent_wallets", s.dry_run)
 
     while True:
         try:
-            kwargs = {"count": 20, "tweet_mode": "extended"}
+            kwargs: dict = {"count": 20, "tweet_mode": "extended"}
             if since_id:
                 kwargs["since_id"] = since_id
-            mentions = api.mentions_timeline(**kwargs)
-            for st in reversed(mentions):
+            for st in reversed(api.mentions_timeline(**kwargs)):
                 since_id = max(since_id or 0, st.id)
                 if st.user.screen_name.lower() == bot:
                     continue
                 handle_mention(api, st)
         except Exception as e:
-            log.exception("poll error: %s", e)
+            log.exception("poll: %s", e)
         time.sleep(poll_seconds)
