@@ -105,20 +105,21 @@ check these. Trust the table.
 ## 5. TODO
 
 **Blocking (none is code):**
-1. ~~Connect Vercel project `stonkfunbot`
-   (`prj_1zsufCIVJoI3Z5uACDlumZqKP7zJ`) to this repo~~ — **done**, linked to
-   `PhantomCapAI/STONKBOT`, production branch `main`. Root Directory must stay
-   **blank (repo root)**: `vercel.json` sets `outputDirectory: web`, and `api/`
-   is at the repo root. Setting Root Directory to `web/` would hide `api/`.
-   Old laptop-pushed Next.js app is what `stonkfunbot.vercel.app` still serves
-   until `main` gets this branch.
-2. After deploy: `GET /api/live` must return JSON (`stats`, `newest`,
-   `graduated`, `volume`). 404 → Root Directory overriding `api/` convention.
-   *Only item that may need real debugging.*
+1. ~~Connect Vercel project `stonkfunbot` to this repo~~ — **done**
+   (2026-08-13). `prj_1zsufCIVJoI3Z5uACDlumZqKP7zJ`, linked to
+   `PhantomCapAI/STONKBOT`, production branch `main`.
+   **Root Directory must stay blank (repo root).** It was set to `web`, which
+   hid `api/` and 404'd `/api/live`; it is now cleared. `vercel.json` handles
+   the static site via `outputDirectory: web`. Do not re-set it.
+2. ~~`GET /api/live` returns JSON~~ — **done**. Live on
+   `https://stonkfunbot.vercel.app/api/live`, HTTP 200, `ok:true` with
+   `stats` / `newest` / `graduated` / `volume`. No further debugging needed.
 3. Confirm live launch cost: `python -m stonkbot.cli doctor` (DRY_RUN=true)
    from an unblocked host. Then one real launch with tight
    `max_launch_cost_sol`. Update site copy with the confirmed figure.
-4. Merge PR #1.
+   **Still open — the only blocking item left besides bot env vars.**
+4. ~~Merge PR #1~~ — **done**, squash-merged to `main` (`f7f382b`),
+   branch deleted, all three CI checks green.
 
 **Non-blocking:** PR body (auto-generated) claims the guard "rejects any
 transaction that doesn't match the quoted cost". It enforces fee payer + signer
