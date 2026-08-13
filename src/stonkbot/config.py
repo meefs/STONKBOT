@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     dry_run: bool = True
     service_fee_sol: float = 0.1
     fee_recipient: str = "GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS"
+    # Share of service_fee_sol paid to referrer (rest → fee_recipient)
+    referral_share: float = 0.30
 
     # Master key to encrypt per-user agent wallet secrets at rest (32+ char random string)
     agent_vault_key: str | None = None
@@ -34,6 +36,7 @@ class Settings(BaseSettings):
         return {
             "dry_run": self.dry_run,
             "service_fee_sol": self.service_fee_sol,
+            "referral_share": self.referral_share,
             "fee_recipient": self.fee_recipient[:8] + "…",
             "min_launch_balance_sol": self.min_launch_balance_sol,
             "daily_launch_budget": self.daily_launch_budget,
