@@ -1,23 +1,26 @@
 # STONKBOT
 
-Bankr-style **X-only** bot for [StonkFun](https://www.stonkfun.xyz) on Solana.
+Fully automated **X-only** bot for [StonkFun](https://www.stonkfun.xyz).
 
 Handle: **@StonkFunBot**
 
-Users link a Solana wallet → mention the bot → token deploys paired with xStocks → **user is creator** (keeps 50% trading fees).
+User mentions bot → bot hot wallet signs + deploys → token live on StonkFun.  
+No manual approvals.
 
-Operator fee: **0.1 SOL** per successful launch → `GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS`
-
-## Locked model
+## Economics
 
 | Item | Value |
 |------|-------|
-| Surface | X only (mentions) |
-| Platform | StonkFun (Solana) |
-| Creator | User's linked wallet |
-| Service fee | 0.1 SOL / launch |
-| Responses | Short WSB |
+| Creator wallet | Bot hot wallet (automated) |
+| Trading fee share (50%) | Lands in bot hot wallet → sweep to you |
+| Fee destination | `GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS` |
+| Surface | X mentions only |
 | Security | Dry-run default, rate limit, circuit breaker, daily budget |
+
+## Why bot is creator
+StonkFun requires the `creatorWallet` to sign the launch tx.  
+Full automation = bot holds a dedicated hot wallet and signs itself.  
+Users trigger launches; they do not sign.
 
 ## Setup
 
@@ -25,42 +28,34 @@ Operator fee: **0.1 SOL** per successful launch → `GKCJKSDJMfq4Zm4ye16oQFHRxqV
 git clone https://github.com/PhantomCapAI/STONKBOT.git
 cd STONKBOT
 cp .env.example .env
-# fill X_API_* keys + optional RPC
+```
+
+Fill:
+1. X API keys for @StonkFunBot
+2. `STONKBOT_HOT_WALLET_SECRET` — keypair for a **new** wallet funded with a little SOL
+3. Keep `STONKBOT_DRY_RUN=true` until first test
+
+```bash
 pip install -r requirements.txt
 pip install -e .
-```
-
-## CLI
-
-```bash
 python -m stonkbot.cli doctor
-python -m stonkbot.cli pairs
-python -m stonkbot.cli link someuser GKCJKSDJMfq4Zm4ye16oQFHRxqVqParBPvA5ja3FPBzS
-python -m stonkbot.cli preview --name "Apes Together" --symbol APEAMC --quote GMEX --creator <WALLET>
-```
-
-## Run X bot
-
-```bash
-# keep STONKBOT_DRY_RUN=true until signing is tested
 python -m stonkbot.bot
 ```
 
-User flows on X:
-- `link <SOLANA_ADDRESS>`
-- `launch GameStop paired with GMEX`
-- `whoami`
+## User commands on X
+```
+@StonkFunBot launch GameStop paired with GMEX
+@StonkFunBot link <optional identity wallet>
+@StonkFunBot whoami
+```
 
 ## Status
-
-- [x] StonkFun API client
-- [x] Account linking
-- [x] Intent parser (no LLM)
-- [x] Dry-run launch preview
-- [x] Fee event tracking
+- [x] StonkFun client
+- [x] Intent parser
+- [x] Hot wallet sign + submit
 - [x] X mention poller
-- [x] Short replies
-- [ ] Live signing of StonkFun payment tx (next)
-- [ ] Auto 0.1 SOL fee transfer on success (next)
+- [x] Dry-run / rate / circuit rails
+- [x] Fee event tracking
+- [ ] Optional auto-sweep of claimed creator fees to fee recipient
 
-Dry-run stays on until you flip it and wire signing keys.
+Fund the hot wallet, set keys, flip dry-run when ready.

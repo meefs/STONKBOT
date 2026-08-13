@@ -5,3 +5,5 @@ python-dotenv>=1.0
 click>=8.1
 sqlite-utils>=3.36
 tweepy>=4.14.0
+solders>=0.21.0
+solana>=0.34.0
