@@ -4,4 +4,4 @@ pydantic-settings>=2.0
 python-dotenv>=1.0
 click>=8.1
 sqlite-utils>=3.36
-# solana / solders added when signing path is wired
+tweepy>=4.14.0
