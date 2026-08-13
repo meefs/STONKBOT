@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy &amp; Data Protection — STONKBOT</title>
+<meta name="description" content="What STONKBOT stores, how it is encrypted, who it is shared with, and how to have it deleted.">
+<link rel="canonical" href="https://stonkfunbot.vercel.app/privacy">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#07080a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="STONKBOT">
+<meta property="og:url" content="https://stonkfunbot.vercel.app/privacy">
+<meta property="og:title" content="Privacy &amp; Data Protection — STONKBOT">
+<meta property="og:description" content="What STONKBOT stores, how it is encrypted, who it is shared with, and how to have it deleted.">
+<meta property="og:image" content="https://stonkfunbot.vercel.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@stonkfunbot">
+<meta name="twitter:image" content="https://stonkfunbot.vercel.app/og.png">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="nav" id="top">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="STONKBOT home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square">
+          <path d="M2 18 L8 11 L13 15 L22 5"/>
+        </svg>
+      </span>
+      <span class="brand-text">STONKBOT</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/#live">Live</a>
+      <a href="/#how">How it works</a>
+      <a href="/#economics">Economics</a>
+      <a href="/#security">Security</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">Launch on X</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
+  </div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
+    <a href="/#live">Live</a>
+    <a href="/#how">How it works</a>
+    <a href="/#economics">Economics</a>
+    <a href="/#security">Security</a>
+    <a href="/#faq">FAQ</a>
+    <a class="mobile-cta" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">Launch on X →</a>
+  </nav>
+</header>
+
+<main id="main" class="doc">
+  <div class="wrap wrap-narrow">
+
+    <p class="kicker">Privacy &amp; data protection</p>
+    <h1 class="doc-title">Your data, and what guards it.</h1>
+    <p class="doc-lede">
+      STONKBOT holds a wallet on your behalf, so this page is written to be
+      specific rather than reassuring. It describes what is stored, how it is
+      protected, who else sees it, and what we cannot protect you from.
+    </p>
+    <p class="doc-updated">Last updated 13 August 2026</p>
+
+    <nav class="doc-toc" aria-label="On this page">
+      <a href="#collect">What we store</a>
+      <a href="#protect">How it is protected</a>
+      <a href="#website">The website</a>
+      <a href="#third-parties">Who else sees it</a>
+      <a href="#retention">Keeping and deleting</a>
+      <a href="#limits">What we cannot protect</a>
+    </nav>
+
+    <!-- ============ WHAT WE STORE ============ -->
+    <section id="collect">
+      <h2>What we store</h2>
+      <p>
+        There is no account, no email address, no password, and no personal
+        profile. Using the bot means tweeting at it, so the only identifier
+        involved is the public X handle that sent the tweet.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">Data STONKBOT stores</caption>
+          <thead>
+            <tr><th scope="col">Data</th><th scope="col">Why</th><th scope="col">Protection</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Your X handle</th>
+              <td>Identifies which agent wallet is yours</td>
+              <td>Stored in plain text — it is already public, and it is how your wallet is found</td>
+            </tr>
+            <tr>
+              <th scope="row">Your agent wallet address</th>
+              <td>Receives your funding and is the creator address on chain</td>
+              <td>Public by nature; it is visible on Solana and in the bot's reply</td>
+            </tr>
+            <tr>
+              <th scope="row">Your agent wallet <em>private key</em></th>
+              <td>Signs your launches</td>
+              <td><strong>Encrypted at rest.</strong> Never logged, tweeted, returned by any API, or sent to a browser</td>
+            </tr>
+            <tr>
+              <th scope="row">Launch and fee records</th>
+              <td>Prevents paying twice; tracks the service fee and referral rebates</td>
+              <td>Owner-only files on the server</td>
+            </tr>
+            <tr>
+              <th scope="row">Handled tweet IDs</th>
+              <td>Stops the same command being executed more than once</td>
+              <td>Owner-only files on the server</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+        <p>
+          We never ask for and never store a seed phrase, a private key of yours,
+          an exchange credential, or a password. If anything claiming to be
+          STONKBOT asks you for one, it is not us.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT IS PROTECTED ============ -->
+    <section id="protect">
+      <h2>How it is protected</h2>
+      <p>
+        These are mechanisms in the running code, not aspirations.
+      </p>
+
+      <div class="sec-grid">
+        <article class="sec-card">
+          <h3>Encrypted private keys</h3>
+          <p>
+            Every agent wallet key is encrypted with Fernet — AES-128-CBC with an
+            HMAC-SHA256 authentication tag, so tampering is detected, not just
+            hidden. The database stores ciphertext only.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Slow key derivation</h3>
+          <p>
+            The encryption key is derived from the master secret with
+            <strong>scrypt</strong> and a random per-install salt. scrypt is
+            memory-hard and deliberately slow, so a stolen database is expensive
+            to attack offline rather than trivial.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>The master key never touches disk</h3>
+          <p>
+            It lives only in the server's environment. It is not in the code, not
+            in the repository, and not in any database. Without it the stored
+            wallets are meaningless ciphertext.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Owner-only files</h3>
+          <p>
+            The data directory is created <code>0700</code> and every database
+            file <code>0600</code> — readable only by the account running the
+            bot, not by anything else sharing the host.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Wallets are isolated</h3>
+          <p>
+            A key is only ever decrypted for the handle that owns it. No code
+            path signs for one user in response to another user's command.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Transactions checked before signing</h3>
+          <p>
+            Before your wallet signs anything, the transaction is decoded and
+            rejected unless you are the fee payer, yours is the only signature
+            required, and the SOL leaving your wallet is within a hard cap.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Nothing is charged twice</h3>
+          <p>
+            Each launch is tied to the tweet that requested it, so a repeated or
+            replayed command returns the original result instead of paying again.
+          </p>
+        </article>
+        <article class="sec-card">
+          <h3>Secrets stay out of logs</h3>
+          <p>
+            Diagnostics print a redacted view of the configuration. Keys are not
+            written to logs, error messages, or replies — a property checked by
+            the test suite, not just by convention.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ WEBSITE ============ -->
+    <section id="website">
+      <h2>The website</h2>
+      <ul class="ticks">
+        <li><strong>No cookies.</strong> This site sets none, for any purpose.</li>
+        <li><strong>No analytics, no trackers, no advertising pixels.</strong> Nothing profiles you here.</li>
+        <li><strong>No wallet connection.</strong> The site never asks you to connect a wallet or sign anything. Everything happens on X.</li>
+        <li><strong>No third-party requests from your browser.</strong> Fonts, styles, scripts and images are all served from this domain. A Content-Security-Policy blocks anything else at the browser level.</li>
+        <li>
+          <strong>Live market data is proxied.</strong> The token board reads
+          StonkFun's public API through our own server, so your browser never
+          contacts StonkFun and your IP address is never exposed to them just for
+          loading this page.
+        </li>
+        <li>
+          <strong>Token names are rendered as text, never as markup</strong> —
+          they are chosen by whoever launched the token, so they are treated as
+          untrusted input.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ THIRD PARTIES ============ -->
+    <section id="third-parties">
+      <h2>Who else sees it</h2>
+      <p>We do not sell, rent, or share your data for marketing. It is not shared with anyone beyond what the product mechanically requires:</p>
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">Third parties involved</caption>
+          <thead>
+            <tr><th scope="col">Who</th><th scope="col">What reaches them</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">X (Twitter)</th><td>Your tweets and the bot's replies. Everything you send the bot is a public tweet, governed by X's own terms.</td></tr>
+            <tr><th scope="row">StonkFun</th><td>Your launch details and wallet address, when you launch — this is what creates the token.</td></tr>
+            <tr><th scope="row">The Solana network</th><td>Your transactions. Public and permanent by design; anyone can read them.</td></tr>
+            <tr><th scope="row">Our Solana RPC provider</th><td>Balance lookups and transactions submitted for your wallet.</td></tr>
+            <tr><th scope="row">Vercel</th><td>Hosts this website and standard server logs for it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">
+        Anything on a public blockchain or a public timeline is permanent and
+        outside anyone's ability to delete — including ours.
+      </p>
+    </section>
+
+    <!-- ============ RETENTION ============ -->
+    <section id="retention">
+      <h2>Keeping and deleting</h2>
+      <p>
+        Wallet records are kept for as long as the wallet may hold funds, because
+        deleting the encrypted key would permanently destroy access to any SOL or
+        tokens at that address. Fee records are kept as an accounting trail.
+        Handled tweet IDs are pruned to a recent window.
+      </p>
+      <p>
+        To have your data removed, message
+        <a href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">@stonkfunbot</a> on X.
+        <strong>Move your funds out of the agent wallet first</strong> — once the
+        key is deleted, anything left at that address is unrecoverable by anyone,
+        including us.
+      </p>
+    </section>
+
+    <!-- ============ LIMITS ============ -->
+    <section id="limits">
+      <h2>What we cannot protect</h2>
+      <div class="callout callout-warn">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg>
+        <p>
+          <strong>Your agent wallet's key is held on our server.</strong> That is
+          what lets the bot sign from a tweet, and there is no way around it in
+          this design. Encryption protects that key at rest; it does not remove
+          the fact that you are trusting the operator and the host. Fund the
+          wallet with what a launch needs — it is not a place to store SOL.
+        </p>
+      </div>
+      <ul class="ticks">
+        <li>Anyone who controls your X account can command your agent wallet. Secure your X account.</li>
+        <li>Blockchain transactions are public, permanent, and irreversible.</li>
+        <li>Token prices can go to zero, and most do. Nothing here is investment advice or a promise of income.</li>
+        <li>No system is perfectly secure, and we will not claim otherwise.</li>
+      </ul>
+    </section>
+
+    <p class="doc-back"><a href="/">← Back to STONKBOT</a></p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-text">STONKBOT</span>
+      <p>An independent client of the StonkFun public API. Not affiliated with StonkFun, Raydium, xStocks or any listed company.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">@stonkfunbot</a>
+      <a href="https://www.stonkfun.xyz" target="_blank" rel="noopener noreferrer">StonkFun</a>
+      <a href="/privacy">Privacy &amp; data</a>
+    </nav>
+  </div>
+  <div class="wrap footer-legal">
+    <p>
+      Not financial advice. Launching or holding tokens carries real risk of total loss.
+      Ticker symbols refer to tokenized assets on Solana and are not equity in the underlying
+      companies. Nothing here promises income of any kind.
+    </p>
+  </div>
+</footer>
+
+<script src="/main.js" defer></script>
+</body>
+</html>

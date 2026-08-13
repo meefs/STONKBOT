@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STONKBOT — Launch stock-paired tokens from X</title>
+<meta name="description" content="Reply to @stonkfunbot on X to launch a token paired with a tokenized stock on StonkFun. Your wallet is the creator, so StonkFun's 50% creator share of trading fees is yours to claim.">
+<link rel="canonical" href="https://stonkfunbot.vercel.app/">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#07080a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="STONKBOT">
+<meta property="og:url" content="https://stonkfunbot.vercel.app/">
+<meta property="og:title" content="STONKBOT — Launch stock-paired tokens from X">
+<meta property="og:description" content="Tweet a command. Your agent wallet launches a token paired with a tokenized stock on StonkFun — and you're the creator.">
+<meta property="og:image" content="https://stonkfunbot.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="STONKBOT — stock in, token out, creator fees to you.">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@stonkfunbot">
+<meta name="twitter:creator" content="@stonkfunbot">
+<meta name="twitter:title" content="STONKBOT — Launch stock-paired tokens from X">
+<meta name="twitter:description" content="Tweet a command. Your agent wallet launches a token paired with a tokenized stock on StonkFun — and you're the creator.">
+<meta name="twitter:image" content="https://stonkfunbot.vercel.app/og.png">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="stylesheet" href="/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "STONKBOT",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "url": "https://stonkfunbot.vercel.app/",
+  "description": "An X bot that launches stock-paired tokens on StonkFun from a per-user agent wallet.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0.1",
+    "priceCurrency": "SOL",
+    "description": "STONKBOT service fee per successful launch, charged separately from StonkFun's own launch cost."
+  }
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="nav" id="top">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="STONKBOT home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square">
+          <path d="M2 18 L8 11 L13 15 L22 5"/>
+        </svg>
+      </span>
+      <span class="brand-text">STONKBOT</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#live">Live</a>
+      <a href="#how">How it works</a>
+      <a href="#economics">Economics</a>
+      <a href="#security">Security</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <a class="btn btn-primary btn-sm" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+      Launch on X
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
+    <a href="#live">Live</a>
+    <a href="#how">How it works</a>
+    <a href="#economics">Economics</a>
+    <a href="#security">Security</a>
+    <a href="#faq">FAQ</a>
+    <a class="mobile-cta" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">Launch on X →</a>
+  </nav>
+</header>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span class="tick">SPYX <b>S&amp;P 500</b></span><span class="tick">NVDAX <b>NVIDIA</b></span>
+    <span class="tick">TSLAX <b>TESLA</b></span><span class="tick">GMEX <b>GME</b></span>
+    <span class="tick">AAPLX <b>APPLE</b></span><span class="tick">METAX <b>META</b></span>
+    <span class="tick">COINX <b>COINBASE</b></span><span class="tick">MSTRX <b>MICROSTRATEGY</b></span>
+    <span class="tick">HOODX <b>ROBINHOOD</b></span><span class="tick">GOOGLX <b>GOOGLE</b></span>
+    <span class="tick">QQQX <b>QQQ</b></span><span class="tick">PLTRX <b>PALANTIR</b></span>
+    <span class="tick">SPYX <b>S&amp;P 500</b></span><span class="tick">NVDAX <b>NVIDIA</b></span>
+    <span class="tick">TSLAX <b>TESLA</b></span><span class="tick">GMEX <b>GME</b></span>
+    <span class="tick">AAPLX <b>APPLE</b></span><span class="tick">METAX <b>META</b></span>
+    <span class="tick">COINX <b>COINBASE</b></span><span class="tick">MSTRX <b>MICROSTRATEGY</b></span>
+    <span class="tick">HOODX <b>ROBINHOOD</b></span><span class="tick">GOOGLX <b>GOOGLE</b></span>
+    <span class="tick">QQQX <b>QQQ</b></span><span class="tick">PLTRX <b>PALANTIR</b></span>
+  </div>
+</div>
+
+<main id="main">
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow reveal"><span class="dot" aria-hidden="true"></span>An X bot for StonkFun on Solana</p>
+
+        <h1 class="reveal">
+          Your stock.<br>
+          Your token.<br>
+          <span class="accent">Your creator fees.</span>
+        </h1>
+
+        <p class="lede reveal">
+          Reply to <a href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">@stonkfunbot</a> on X and it
+          launches a token paired with a tokenized stock on
+          <a href="https://www.stonkfun.xyz" target="_blank" rel="noopener noreferrer">StonkFun</a> —
+          signed by a wallet that belongs to you. You are the creator on chain, so the creator
+          share of trading fees is yours to claim.
+        </p>
+
+        <div class="cta-row reveal">
+          <a class="btn btn-primary" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+            Launch on X
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+
+        <p class="hero-note reveal">
+          Non-custodial by design in one respect that matters: the launch is signed by
+          <em>your</em> agent wallet, so the creator address on chain is yours, not ours.
+          <a href="#security">Read the security model.</a>
+        </p>
+      </div>
+
+      <!-- Flow: STOCK -> TOKEN -> CREATOR -->
+      <aside class="hero-flow reveal" aria-label="How value flows">
+        <ol class="flow">
+          <li class="flow-step">
+            <span class="flow-label">Stock</span>
+            <span class="flow-value">GMEX</span>
+            <span class="flow-sub">Tokenized GME (xStock)</span>
+          </li>
+          <li class="flow-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+          </li>
+          <li class="flow-step">
+            <span class="flow-label">Token</span>
+            <span class="flow-value">$GAMESTOP</span>
+            <span class="flow-sub">Paired 1% Raydium pool</span>
+          </li>
+          <li class="flow-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+          </li>
+          <li class="flow-step is-final">
+            <span class="flow-label">Creator</span>
+            <span class="flow-value accent">50%</span>
+            <span class="flow-sub">of trading fees, claimable by you</span>
+          </li>
+        </ol>
+        <p class="flow-src">
+          Split per <a href="https://www.stonkfun.xyz/developers" target="_blank" rel="noopener noreferrer">StonkFun's API docs</a>, standard&nbsp;mode.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= LIVE MARKET ================= -->
+  <section class="section section-alt" id="live" aria-labelledby="live-h">
+    <div class="wrap">
+      <div class="section-head live-head reveal">
+        <div>
+          <p class="kicker">
+            <span class="live-dot" aria-hidden="true"></span>Live on StonkFun
+          </p>
+          <h2 id="live-h">The market, right now.</h2>
+        </div>
+        <p class="live-stamp" id="live-stamp" aria-live="polite">Loading…</p>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stat-strip reveal" id="live-stats">
+        <div class="stat"><span class="stat-label">Tokens launched</span><span class="stat-value" data-stat="totalTokens">—</span></div>
+        <div class="stat"><span class="stat-label">Bonded</span><span class="stat-value" data-stat="graduated">—</span></div>
+        <div class="stat"><span class="stat-label">24h volume</span><span class="stat-value" data-stat="volume24hUsd">—</span></div>
+        <div class="stat"><span class="stat-label">Total market cap</span><span class="stat-value" data-stat="marketCapUsd">—</span></div>
+      </div>
+
+      <!-- Token board -->
+      <div class="board reveal">
+        <div class="board-tabs" role="tablist" aria-label="Token views">
+          <button class="board-tab is-active" role="tab" id="tab-newest"
+                  aria-selected="true" aria-controls="panel-tokens" data-view="newest">New pairs</button>
+          <button class="board-tab" role="tab" id="tab-volume"
+                  aria-selected="false" aria-controls="panel-tokens" data-view="volume">Top volume</button>
+          <button class="board-tab" role="tab" id="tab-graduated"
+                  aria-selected="false" aria-controls="panel-tokens" data-view="graduated">Bonded</button>
+        </div>
+
+        <div class="board-body" id="panel-tokens" role="tabpanel"
+             aria-labelledby="tab-newest" aria-busy="true">
+          <div class="board-row board-header" aria-hidden="true">
+            <span>Token</span><span>Paired</span><span class="ta-r">Market cap</span>
+            <span class="ta-r">24h vol</span><span class="ta-r">24h</span><span>Bonding</span>
+          </div>
+          <div id="token-rows">
+            <p class="board-msg">Loading live data…</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="live-note reveal">
+        Live from StonkFun's public API, refreshed every 60 seconds and cached
+        server-side. Bonding shows progress toward graduation.
+        Market data is StonkFun's, not ours — and it is not a solicitation to buy anything.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= DEMO ================= -->
+  <section class="section" id="demo" aria-labelledby="demo-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">The whole product</p>
+        <h2 id="demo-h">It's a tweet.</h2>
+        <p class="section-lede">
+          No dashboard, no wallet extension, no seed phrase to write down. You talk to the bot on X.
+        </p>
+      </div>
+
+      <div class="terminal reveal" role="img" aria-label="Example conversation with the bot on X. The user tweets 'register'; the bot replies with an agent wallet address. The user tweets 'launch GameStop paired with GMEX'; the bot quotes the exact cost, then replies that the token is live.">
+        <div class="terminal-bar">
+          <span class="tdot" aria-hidden="true"></span><span class="tdot" aria-hidden="true"></span><span class="tdot" aria-hidden="true"></span>
+          <span class="terminal-title">x.com / @stonkfunbot</span>
+          <span class="terminal-tag">Illustration</span>
+        </div>
+
+        <div class="thread" aria-hidden="true">
+          <div class="msg msg-user">
+            <span class="who">@you</span>
+            <p>@stonkfunbot register</p>
+          </div>
+          <div class="msg msg-bot">
+            <span class="who">@stonkfunbot</span>
+            <p>Agent wallet ready.<br>
+            <span class="mono addr">7xKX…9fPq</span><br>
+            Fund it, then: launch GameStop paired with GMEX</p>
+          </div>
+          <div class="msg msg-user">
+            <span class="who">@you</span>
+            <p>@stonkfunbot launch GameStop paired with GMEX</p>
+          </div>
+          <div class="msg msg-bot">
+            <span class="who">@stonkfunbot</span>
+            <p><span class="status-live"><span class="pulse" aria-hidden="true"></span>Live.</span><br>
+            $GAMESTOP / GMEX<br>
+            <span class="mono link-ish">stonkfun.xyz/token/…</span><br>
+            Creator fees route to your wallet.</p>
+          </div>
+        </div>
+      </div>
+      <p class="disclaimer reveal">
+        Illustration of the command format. Addresses and results are placeholders — not a real transaction.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= HOW IT WORKS ================= -->
+  <section class="section section-alt" id="how" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">How it works</p>
+        <h2 id="how-h">Five steps, start to live.</h2>
+      </div>
+
+      <ol class="steps">
+        <li class="step reveal">
+          <span class="step-num" aria-hidden="true">01</span>
+          <h3>Register</h3>
+          <p>Reply <code>register</code> to @stonkfunbot. No form, no signup, no email.</p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num" aria-hidden="true">02</span>
+          <h3>Get your agent wallet</h3>
+          <p>The bot generates a Solana keypair that belongs to your handle alone and replies with the address. The secret is encrypted before it is stored.</p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num" aria-hidden="true">03</span>
+          <h3>Fund it</h3>
+          <p>Send SOL to that address. It covers StonkFun's launch cost, the STONKBOT fee and network fees. <a href="#economics">See the numbers →</a></p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num" aria-hidden="true">04</span>
+          <h3>Launch</h3>
+          <p>Tweet <code>launch &lt;name&gt; paired with &lt;QUOTE&gt;</code>. The bot prices the launch, checks the transaction, signs with your wallet and submits.</p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num" aria-hidden="true">05</span>
+          <h3>Claim your creator fees</h3>
+          <p>Your wallet is the creator address on chain. StonkFun splits the pool's trading fees 50/50 with creators; you claim your half from the token page.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= ECONOMICS ================= -->
+  <section class="section" id="economics" aria-labelledby="econ-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">Economics</p>
+        <h2 id="econ-h">What it costs, and who gets paid.</h2>
+        <p class="section-lede">
+          Two separate things are often blurred together. They are not the same, so we list them apart:
+          <strong>StonkFun's</strong> cost to launch, and <strong>STONKBOT's</strong> fee for doing it for you.
+        </p>
+      </div>
+
+      <div class="econ-grid">
+        <article class="econ-card econ-hero reveal">
+          <p class="econ-label">Your creator share</p>
+          <p class="econ-value accent">50<span class="unit">%</span></p>
+          <p class="econ-desc">
+            of the pool's trading fees, for a standard launch — the mode STONKBOT uses.
+            StonkFun keeps the other half. Claimed by you, from the token page.
+          </p>
+          <p class="econ-src">
+            <span class="src-badge src-ok">Verified</span>
+            <a href="https://www.stonkfun.xyz/developers" target="_blank" rel="noopener noreferrer">StonkFun API docs</a>
+      <a href="/privacy">Privacy &amp; data</a>
+          </p>
+        </article>
+
+        <article class="econ-card reveal">
+          <p class="econ-label">STONKBOT service fee</p>
+          <p class="econ-value">0.1<span class="unit">SOL</span></p>
+          <p class="econ-desc">
+            Per <em>successful</em> launch, charged after your token is live. A launch that
+            fails costs you no service fee.
+          </p>
+          <p class="econ-src"><span class="src-badge src-ok">Verified</span> STONKBOT config</p>
+        </article>
+
+        <article class="econ-card reveal">
+          <p class="econ-label">StonkFun launch cost</p>
+          <p class="econ-value quoted">Quoted<span class="unit">per launch</span></p>
+          <p class="econ-desc">
+            StonkFun does not publish a fixed price. The real amount rides inside the payment
+            transaction, so the bot reads your exact cost at launch time and refuses to sign if
+            your balance is short.
+          </p>
+          <p class="econ-src"><span class="src-badge src-warn">Not published</span> quoted live via <code>/launches/prepare</code></p>
+        </article>
+
+        <article class="econ-card reveal">
+          <p class="econ-label">Suggested starting balance</p>
+          <p class="econ-value">~0.35<span class="unit">SOL</span></p>
+          <p class="econ-desc">
+            A comfortable amount to fund with, not a minimum and not a quote. Your actual
+            requirement is whatever the bot quotes at launch. Unspent SOL stays in your wallet.
+          </p>
+          <p class="econ-src"><span class="src-badge src-info">Guidance</span> not a StonkFun figure</p>
+        </article>
+      </div>
+
+      <div class="callout reveal">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+        <p>
+          <strong>Minimum required is not the same as recommended funding.</strong>
+          We can't print a minimum here honestly, because StonkFun prices each launch at request
+          time. What we can promise is that the bot tells you the real number before it spends
+          anything, and stops if you're short.
+        </p>
+      </div>
+
+      <details class="details reveal">
+        <summary>Full fee breakdown</summary>
+        <div class="details-body">
+          <div class="table-scroll">
+            <table>
+              <caption class="sr-only">Every cost and fee involved in a STONKBOT launch</caption>
+              <thead>
+                <tr><th scope="col">Item</th><th scope="col">Amount</th><th scope="col">Paid to</th><th scope="col">Source</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">StonkFun launch payment</th>
+                  <td class="mono">Quoted per launch</td><td>StonkFun</td>
+                  <td>Read from <code>/launches/prepare</code></td>
+                </tr>
+                <tr>
+                  <th scope="row">STONKBOT service fee</th>
+                  <td class="mono">0.1 SOL</td><td>STONKBOT operator</td>
+                  <td>Config, charged on success only</td>
+                </tr>
+                <tr>
+                  <th scope="row">Solana network fees &amp; rent</th>
+                  <td class="mono">Network rate</td><td>Solana validators</td>
+                  <td>Included in the quoted payment</td>
+                </tr>
+                <tr>
+                  <th scope="row">Pool trading fee</th>
+                  <td class="mono">1%</td><td>Split 50/50 creator / StonkFun</td>
+                  <td>StonkFun API docs</td>
+                </tr>
+                <tr>
+                  <th scope="row">Optional dev buy</th>
+                  <td class="mono">Up to 2.5% of supply</td><td>Buys your own token</td>
+                  <td>StonkFun API docs</td>
+                </tr>
+                <tr>
+                  <th scope="row">Referral rebate</th>
+                  <td class="mono">0.03 SOL</td><td>Referrer's agent wallet</td>
+                  <td>30% of the STONKBOT fee</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">
+            Trading fees accrue only if people trade your token. Nothing here is a projection of
+            income, and no outcome is promised.
+          </p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= REFERRALS ================= -->
+  <section class="section section-alt" id="referrals" aria-labelledby="ref-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">Referrals</p>
+        <h2 id="ref-h">Bring someone in, split our fee.</h2>
+        <p class="section-lede">
+          To be precise about whose money this is: the rebate comes out of
+          <strong>STONKBOT's own 0.1 SOL fee</strong>. It is not a StonkFun program —
+          StonkFun does not publish one — and it takes nothing from the person you refer.
+        </p>
+      </div>
+
+      <div class="ref-grid">
+        <div class="ref-card reveal">
+          <p class="ref-num accent">0.03<span class="unit">SOL</span></p>
+          <p class="ref-desc">to you, per launch by someone you referred — 30% of our fee.</p>
+        </div>
+        <div class="ref-card reveal">
+          <p class="ref-num">1<span class="unit">level</span></p>
+          <p class="ref-desc">Direct referrals only. Their referrals pay them, not you.</p>
+        </div>
+        <div class="ref-card reveal">
+          <p class="ref-num">@<span class="unit">handle</span></p>
+          <p class="ref-desc">Your X handle is your code. Nothing to generate.</p>
+        </div>
+      </div>
+
+      <div class="ref-how reveal">
+        <p class="ref-how-title">They add your handle to their launch:</p>
+        <code class="cmd">launch GameStop paired with GMEX ref <span class="accent">yourhandle</span></code>
+        <ul class="ticks">
+          <li>Paid in SOL to your agent wallet, after their launch succeeds.</li>
+          <li>No self-referrals — referring yourself pays nothing.</li>
+          <li>Check your total any time by replying <code>ref</code> to the bot.</li>
+          <li>Only successful launches count. No cap on how many people you refer.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECURITY ================= -->
+  <section class="section" id="security" aria-labelledby="sec-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">Security</p>
+        <h2 id="sec-h">What actually protects your SOL.</h2>
+        <p class="section-lede">
+          Every item below is a mechanism in the code, not a slogan. Read them as a description
+          of the design, and judge it accordingly.
+        </p>
+      </div>
+
+      <div class="sec-grid">
+        <article class="sec-card reveal">
+          <h3>Encrypted keys at rest</h3>
+          <p>Agent wallet secrets are encrypted with Fernet (AES-128-CBC + HMAC) under a master key held only in the server environment. The database stores ciphertext.</p>
+        </article>
+        <article class="sec-card reveal">
+          <h3>Transactions are checked before signing</h3>
+          <p>The bot decodes StonkFun's payment transaction and refuses to sign unless your wallet is the fee payer, it is the only required signature, and the SOL leaving your wallet is within a hard cap.</p>
+        </article>
+        <article class="sec-card reveal">
+          <h3>One launch per command</h3>
+          <p>Each launch is keyed to the tweet that asked for it. A repeated or replayed mention returns the original result instead of paying a second time.</p>
+        </article>
+        <article class="sec-card reveal">
+          <h3>Wallets are isolated per handle</h3>
+          <p>A keypair is only ever loaded for the handle that owns it. There is no code path that signs for one user on another user's request.</p>
+        </article>
+        <article class="sec-card reveal">
+          <h3>Rate limits and a circuit breaker</h3>
+          <p>Per-user and global rate limits, a daily launch budget, and a breaker that trips after repeated failures so a broken dependency can't be hammered.</p>
+        </article>
+        <article class="sec-card reveal">
+          <h3>Dry-run by default</h3>
+          <p>The bot ships with live spending disabled. Turning it on is a deliberate, explicit configuration change.</p>
+        </article>
+      </div>
+
+      <div class="callout callout-warn reveal">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg>
+        <p>
+          <strong>Be clear-eyed about the trade-off.</strong> Your agent wallet's key is generated and
+          held by STONKBOT's server so the bot can sign for you from a tweet. That is custody, and it
+          means you are trusting the operator and the server's security. Fund it with what a launch
+          needs — it is not a place to store SOL. Tokens can and do go to zero.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section class="section section-alt" id="faq" aria-labelledby="faq-h">
+    <div class="wrap wrap-narrow">
+      <div class="section-head reveal">
+        <p class="kicker">FAQ</p>
+        <h2 id="faq-h">Straight answers.</h2>
+      </div>
+
+      <div class="faq">
+        <details class="reveal"><summary>What is STONKBOT?</summary><div class="faq-body">
+          <p>An X bot that launches tokens on StonkFun for you. You tweet a command, it does the on-chain work, and your wallet ends up as the token's creator.</p>
+        </div></details>
+
+        <details class="reveal"><summary>What is StonkFun?</summary><div class="faq-body">
+          <p>A Solana launchpad where every token is paired against another token — commonly a tokenized stock like GMEX (GME) or NVDAX (NVIDIA) — instead of against SOL. Each launch opens a one-sided Raydium market. STONKBOT is an independent client of their public API.</p>
+        </div></details>
+
+        <details class="reveal"><summary>What is an agent wallet?</summary><div class="faq-body">
+          <p>A Solana keypair the bot creates for your X handle, used to pay for and sign your launches. It makes your handle the creator on chain. Its secret key is encrypted at rest and held on STONKBOT's server — see the trade-off noted in <a href="#security">Security</a>.</p>
+        </div></details>
+
+        <details class="reveal"><summary>How much SOL do I need?</summary><div class="faq-body">
+          <p>Whatever the bot quotes for your specific launch, plus the 0.1 SOL service fee and a little for network fees. Around 0.35 SOL is a comfortable starting balance, but treat that as a suggestion — the quote is the real number, and the bot will tell you if you're short before spending anything.</p>
+        </div></details>
+
+        <details class="reveal"><summary>Why won't you just state a minimum?</summary><div class="faq-body">
+          <p>Because we can't state one honestly. StonkFun prices each launch at request time inside the payment transaction rather than publishing a fixed fee. Printing a number here would mean guessing, and a guess about someone's money is worse than a clear "we quote it live".</p>
+        </div></details>
+
+        <details class="reveal"><summary>What is the STONKBOT service fee?</summary><div class="faq-body">
+          <p>0.1 SOL per successful launch, transferred from your agent wallet after your token is live. It is separate from anything StonkFun charges. If your launch fails, you are not charged it.</p>
+        </div></details>
+
+        <details class="reveal"><summary>What share of creator fees do I get?</summary><div class="faq-body">
+          <p>StonkFun's standard launch mode — the one STONKBOT uses — splits the pool's 1% trading fees 50/50 between the creator and the platform. Your wallet is the creator, so that half accrues to you and you claim it from the token page. It accrues only when people actually trade the token.</p>
+        </div></details>
+
+        <details class="reveal"><summary>Where does the token launch, and what do I get?</summary><div class="faq-body">
+          <p>On StonkFun, into a one-sided Raydium pool quoted against the pair you chose. You get a fixed-supply token with a live market and the creator fee position. You can optionally take a dev buy of up to 2.5% of supply as the pool's first trade.</p>
+        </div></details>
+
+        <details class="reveal"><summary>Can I check my wallet balance?</summary><div class="faq-body">
+          <p>Reply <code>balance</code> or <code>whoami</code> to the bot and it returns your address and current SOL balance.</p>
+        </div></details>
+
+        <details class="reveal"><summary>What happens if a launch fails?</summary><div class="faq-body">
+          <p>It depends on how it failed, and the bot distinguishes the cases rather than guessing. If StonkFun confirms nothing was charged, you can simply try again. If a payment landed but the launch needs manual recovery, the bot tells you <em>not</em> to retry — retrying there would mint a second token. Either way, no service fee is charged for a launch that didn't succeed.</p>
+        </div></details>
+
+        <details class="reveal"><summary>How do referrals work?</summary><div class="faq-body">
+          <p>Someone adds <code>ref yourhandle</code> to their launch command. When their launch succeeds, 30% of our 0.1 SOL fee — 0.03 SOL — goes to your agent wallet. One level only, no self-referrals. This is STONKBOT's own rebate, not a StonkFun program.</p>
+        </div></details>
+
+        <details class="reveal"><summary>Is this financial advice?</summary><div class="faq-body">
+          <p>No. Launching a token is not an investment and nothing here suggests you'll make money. Creator fees only exist if people trade. Most tokens go to zero. Only spend what you're willing to lose.</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="final" aria-labelledby="final-h">
+    <div class="wrap final-inner reveal">
+      <h2 id="final-h">Pick a stock. Ship a token.</h2>
+      <p>It starts with one tweet.</p>
+      <a class="btn btn-primary btn-lg" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+        Launch on X
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </a>
+      <p class="final-cmd"><code>@stonkfunbot register</code></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-text">STONKBOT</span>
+      <p>An independent client of the StonkFun public API. Not affiliated with StonkFun, Raydium, xStocks or any listed company.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">@stonkfunbot</a>
+      <a href="https://www.stonkfun.xyz" target="_blank" rel="noopener noreferrer">StonkFun</a>
+      <a href="https://www.stonkfun.xyz/developers" target="_blank" rel="noopener noreferrer">StonkFun API docs</a>
+      <a href="/privacy">Privacy &amp; data</a>
+    </nav>
+  </div>
+  <div class="wrap footer-legal">
+    <p>
+      Not financial advice. Launching or holding tokens carries real risk of total loss.
+      Ticker symbols refer to tokenized assets on Solana and are not equity in the underlying
+      companies. Nothing here promises income of any kind.
+    </p>
+  </div>
+</footer>
+
+<script src="/main.js" defer></script>
+</body>
+</html>

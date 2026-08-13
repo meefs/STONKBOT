@@ -1,4 +1,4 @@
-"""CLI entrypoint."""
+"""CLI entrypoint — operator tooling. Never prints a secret."""
 
 from __future__ import annotations
 
@@ -8,11 +8,14 @@ import sys
 import click
 
 from .config import get_settings
+from .db import permissions_report
+from .fees import outstanding, pending_total, referral_earnings
+from .idempotency import stuck
+from .launch import preview
 from .models import LaunchRequest
-from .stonkfun_client import StonkFunClient
-from .launch import preview, run_launch
-from .accounts import link, get as get_account
 from .security import guard
+from .stonkfun_client import StonkFunClient, StonkFunError
+from .vault import encryption_status as vault_encryption_status
 
 
 @click.group()
@@ -22,78 +25,126 @@ def main() -> None:
 
 @main.command()
 def doctor() -> None:
-    """Readiness check (safe)."""
-    s = get_settings()
-    click.echo(json.dumps(s.redacted(), indent=2))
-    ok, reason = guard.can_launch()
+    """Readiness check. Safe to run in production — reveals no secrets."""
+    settings = get_settings()
+    click.echo(json.dumps(settings.redacted(), indent=2))
+
+    problems: list[str] = []
+
+    if not settings.agent_vault_key:
+        problems.append("AGENT_VAULT_KEY is not set — agent wallets cannot be created")
+    elif len(settings.agent_vault_key) < 32:
+        problems.append("AGENT_VAULT_KEY is shorter than 32 characters")
+
+    if not settings.dry_run:
+        click.echo("\n!! DRY_RUN is OFF — launches will spend real SOL")
+        if not settings.x_bot_username:
+            problems.append("X_BOT_USERNAME unset while live: the bot may answer itself")
+
+    ok, reason = guard.peek()
     click.echo(f"can_launch: {ok} ({reason})")
+
+    # --- data protection ---------------------------------------------------
     try:
-        client = StonkFunClient()
-        pairs = client.list_pairs(launchable=True)
-        click.echo(f"stonkfun pairs launchable: {len(pairs)}")
-        client.close()
+        encryption = vault_encryption_status()
+        click.echo(
+            f"wallets: {encryption['total_wallets']} "
+            f"(scrypt {encryption['scrypt_v2']}, legacy {encryption['legacy_sha256_v1']})"
+        )
+        if encryption["legacy_sha256_v1"]:
+            click.echo(
+                "  note: legacy-encrypted wallets upgrade automatically on next use"
+            )
     except Exception as e:
-        click.echo(f"stonkfun error: {e}")
+        problems.append(f"vault unreadable: {e}")
+
+    for entry in permissions_report():
+        if not entry["ok"]:
+            problems.append(
+                f"{entry['path']} is {entry['mode']}, expected {entry['expected']} "
+                "— other accounts on this host can read it"
+            )
+
+    try:
+        with StonkFunClient() as client:
+            pairs = client.list_pairs(launchable=True)
+            click.echo(f"stonkfun launchable pairs: {len(pairs)}")
+            stats = client.get_stats()
+            config = stats.get("config", {})
+            click.echo(f"stonkfun api launches enabled: {config.get('apiLaunchesEnabled')}")
+            if config.get("apiLaunchesEnabled") is False:
+                problems.append("StonkFun has API launches disabled right now")
+    except StonkFunError as e:
+        problems.append(f"StonkFun API unreachable: {e}")
+
+    try:
+        unpaid = pending_total()
+        if unpaid:
+            click.echo(f"unsettled service fees: {unpaid:.4f} SOL")
+    except Exception as e:
+        click.echo(f"fee ledger unreadable: {e}")
+
+    for entry in stuck():
+        problems.append(f"launch stuck in 'running': {entry['key']}")
+
+    if problems:
+        click.echo("\nProblems:")
+        for problem in problems:
+            click.echo(f"  - {problem}")
         sys.exit(1)
+    click.echo("\nAll checks passed.")
 
 
 @main.command("pairs")
-def list_pairs() -> None:
+def list_pairs_cmd() -> None:
     """List launchable quote pairs."""
-    client = StonkFunClient()
-    try:
-        for p in client.list_pairs(launchable=True):
-            click.echo(f"{p.symbol:12} {p.mint}  [{p.category or '-'}]")
-    finally:
-        client.close()
-
-
-@main.command("link")
-@click.argument("x_handle")
-@click.argument("solana_wallet")
-def link_cmd(x_handle: str, solana_wallet: str) -> None:
-    """Link an X handle to a Solana wallet."""
-    acc = link(x_handle, solana_wallet)
-    click.echo(f"Linked @{acc.x_handle} → {acc.solana_wallet}")
-
-
-@main.command("who")
-@click.argument("x_handle")
-def who_cmd(x_handle: str) -> None:
-    """Show linked wallet for a handle."""
-    acc = get_account(x_handle)
-    if not acc:
-        click.echo("Not linked.")
-        sys.exit(1)
-    click.echo(f"@{acc.x_handle} → {acc.solana_wallet}")
+    with StonkFunClient() as client:
+        for pair in client.list_pairs(launchable=True):
+            click.echo(f"{pair.symbol:12} {pair.mint}  [{pair.category or '-'}]")
 
 
 @main.command("preview")
 @click.option("--name", required=True)
 @click.option("--symbol", required=True)
-@click.option("--quote", required=True, help="Quote symbol or mint (e.g. GMEX or mint address)")
-@click.option("--creator", required=True, help="Creator Solana wallet (user's linked wallet)")
+@click.option("--quote", required=True, help="Quote symbol or mint, e.g. GMEX")
+@click.option("--creator", required=True, help="Creator Solana wallet")
 def preview_cmd(name: str, symbol: str, quote: str, creator: str) -> None:
-    """Dry preview of a launch (nothing on chain)."""
-    client = StonkFunClient()
+    """Dry preview of a launch. Nothing on chain, nothing charged."""
     try:
-        pairs = client.list_pairs(launchable=True)
-        match = next((p for p in pairs if p.symbol.upper() == quote.upper() or p.mint == quote), None)
-        if not match:
-            click.echo(f"Quote not found / not launchable: {quote}")
-            sys.exit(1)
-        req = LaunchRequest(
-            name=name,
-            symbol=symbol.upper(),
-            quote_mint=match.mint,
-            creator_wallet=creator,
-            mode="standard",
+        request = LaunchRequest(
+            name=name, symbol=symbol, quote_mint=quote, creator_wallet=creator
         )
-        result = preview(req)
-        click.echo(result.message)
-        click.echo(json.dumps(result.model_dump(exclude={"raw"}), indent=2))
-    finally:
-        client.close()
+    except ValueError as e:
+        click.echo(f"invalid request: {e}")
+        sys.exit(1)
+
+    result = preview(request)
+    click.echo(result.message)
+    click.echo(json.dumps(result.model_dump(exclude={"raw"}), indent=2, default=str))
+    if result.status == "failed":
+        sys.exit(1)
+
+
+@main.command("fees")
+def fees_cmd() -> None:
+    """Show unsettled STONKBOT service fees."""
+    click.echo(f"pending: {pending_total():.4f} SOL")
+    rows = outstanding()
+    if not rows:
+        click.echo("nothing outstanding")
+        return
+    for row in rows:
+        click.echo(
+            f"#{row['id']:<5} {row['role']:<9} {row['amount_sol']:.4f} SOL  "
+            f"{row['status']:<8} @{row['x_handle']}"
+        )
+
+
+@main.command("ref")
+@click.argument("x_handle")
+def ref_cmd(x_handle: str) -> None:
+    """Show referral rebate totals for a handle."""
+    click.echo(json.dumps(referral_earnings(x_handle), indent=2))
 
 
 if __name__ == "__main__":
