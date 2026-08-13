@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 import click
@@ -38,8 +39,24 @@ def doctor() -> None:
 
     if not settings.dry_run:
         click.echo("\n!! DRY_RUN is OFF — launches will spend real SOL")
-        if not settings.x_bot_username:
-            problems.append("X_BOT_USERNAME unset while live: the bot may answer itself")
+
+    # --- storage backend ---------------------------------------------------
+    # The dangerous misconfiguration is a serverless deploy still on SQLite:
+    # the vault would be recreated empty on every invocation, stranding wallets
+    # and disarming the double-payment guard.
+    if settings.database_url:
+        click.echo("store: postgres")
+        if not settings.cron_secret:
+            problems.append(
+                "CRON_SECRET unset — /api/poll refuses every request without it"
+            )
+    else:
+        click.echo(f"store: sqlite ({settings.data_dir})")
+        if os.environ.get("VERCEL"):
+            problems.append(
+                "running on Vercel without DATABASE_URL — function disks are "
+                "ephemeral, so the wallet vault would not survive an invocation"
+            )
 
     ok, reason = guard.peek()
     click.echo(f"can_launch: {ok} ({reason})")

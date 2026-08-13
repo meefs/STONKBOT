@@ -125,11 +125,39 @@ check these. Trust the table.
 transaction that doesn't match the quoted cost". It enforces fee payer + signer
 count + hard cap. Correct it.
 
+## 5b. Deployment shape
+
+Decided 2026-08-13: **all-in on Vercel**, one platform for site and bot.
+
+- `/api/poll` (Python) is invoked by cron every minute and runs exactly one
+  `x_bot.poll_once` cycle. `run_poll_loop` still exists for a long-running
+  host; both drive the same function.
+- **`DATABASE_URL` is mandatory on Vercel.** It switches the whole state layer
+  from SQLite to Postgres. Function disks are ephemeral: on SQLite the wallet
+  vault would be recreated empty every invocation and the double-payment guard
+  would silently stop guarding. `cli doctor` fails if it sees `VERCEL` set
+  without `DATABASE_URL`.
+- `CRON_SECRET` is mandatory too. `/api/poll` makes the bot post, so it fails
+  closed — no secret, no requests served, including Vercel's own.
+- **The cron schedule in `vercel.json` is `0 3 * * *` (daily) and that is a
+  placeholder.** Hobby rejects anything more frequent *at deploy time* — a
+  `* * * * *` schedule fails the build, which takes the static site down with
+  it, not just the bot. So the frequent schedule cannot be committed until the
+  account is on Pro.
+  After upgrading, change that one line to `* * * * *`. Nothing else moves.
+  (Pro also gives per-minute precision; Hobby is ±59 min even on a daily job.)
+- One SQL flavour is written (SQLite's, `?` placeholders); `dialect.py`
+  rewrites it for Postgres. Postgres aborts a transaction on a failed
+  statement, so `claim()` uses `INSERT OR IGNORE` + rowcount rather than
+  catching a uniqueness violation — do not "simplify" that back.
+
 **Env vars** — site: none (static + keyless proxy).
-Bot (needs persistent volume for `data/`):
+Bot:
 - Required: `AGENT_VAULT_KEY` (32+ chars; **losing/changing strands every
   wallet**), `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`,
   `X_ACCESS_TOKEN_SECRET`, `STONKBOT_DRY_RUN`
+- Required **on Vercel**: `DATABASE_URL` (or `POSTGRES_URL`), `CRON_SECRET`.
+  Off Vercel: `STONKBOT_DATA_DIR` on a persistent volume instead.
 - `X_BOT_USERNAME` is now advisory only: the loop calls `get_me()` and trusts
   the handle the token actually authenticates as, logging a warning on
   mismatch. Set it anyway as a tripwire against wiring the wrong account.

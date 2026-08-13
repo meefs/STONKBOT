@@ -3,6 +3,17 @@
   "outputDirectory": "web",
   "cleanUrls": true,
   "trailingSlash": false,
+  "crons": [
+    {
+      "path": "/api/poll",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "functions": {
+    "api/poll.py": {
+      "maxDuration": 300
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -51,11 +62,24 @@
       ]
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/live",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, s-maxage=30, stale-while-revalidate=300"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/api/poll",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
         },
         {
           "key": "X-Robots-Tag",

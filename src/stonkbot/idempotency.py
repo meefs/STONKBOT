@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from .db import connect
+from .db import connect, dialect
+from .dialect import table
 
 log = logging.getLogger("stonkbot.idempotency")
 
@@ -40,20 +40,21 @@ STALE_SECONDS = 900
 
 DB_NAME = "launches.db"
 
-_SCHEMA = """
-    CREATE TABLE IF NOT EXISTS launch_keys (
-        key TEXT PRIMARY KEY,
-        state TEXT NOT NULL,
-        result_json TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+def _schema() -> str:
+    return table(
+        dialect(),
+        "launch_keys",
+        "key {text} PRIMARY KEY, "
+        "state {text} NOT NULL, "
+        "result_json {text}, "
+        "created_at {timestamp} NOT NULL, "
+        "updated_at {timestamp} NOT NULL",
     )
-    """
 
 
 @contextmanager
 def _conn():
-    with connect(DB_NAME, _SCHEMA) as c:
+    with connect(DB_NAME, _schema()) as c:
         yield c
 
 
@@ -84,15 +85,17 @@ def claim(key: str) -> dict | None:
     """
     now = _now()
     with _conn() as c:
-        try:
-            c.execute(
-                "INSERT INTO launch_keys (key, state, created_at, updated_at) "
-                "VALUES (?, 'running', ?, ?)",
-                (key, now, now),
-            )
+        # INSERT OR IGNORE rather than catching a uniqueness violation: in
+        # Postgres a failed statement poisons the whole transaction, so the
+        # SELECT below would raise InFailedSqlTransaction instead of reading
+        # the existing row. rowcount tells us who won the race on both backends.
+        claimed = c.execute(
+            "INSERT OR IGNORE INTO launch_keys (key, state, created_at, updated_at) "
+            "VALUES (?, 'running', ?, ?)",
+            (key, now, now),
+        )
+        if claimed.rowcount > 0:
             return None
-        except sqlite3.IntegrityError:
-            pass  # already present — inspect it below
 
         row = c.execute(
             "SELECT state, result_json, updated_at FROM launch_keys WHERE key=?",

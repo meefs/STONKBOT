@@ -14,6 +14,8 @@ dependencies = [
   "tweepy>=4.14.0",
   "solders>=0.21.0",
   "cryptography>=42.0.0",
+  # Only imported when DATABASE_URL is set; SQLite installs never load it.
+  "psycopg[binary]>=3.1",
 ]
 
 [project.optional-dependencies]

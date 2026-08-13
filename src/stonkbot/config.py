@@ -114,6 +114,20 @@ class Settings(BaseSettings):
         default=3, validation_alias=_both("user_launches_per_hour")
     )
     data_dir: str = Field(default="data", validation_alias=_both("data_dir"))
+    # Set → state lives in Postgres (serverless, no durable disk). Unset →
+    # SQLite under data_dir. Also accepts POSTGRES_URL, which is what the
+    # Vercel Postgres integration injects.
+    database_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "STONKBOT_DATABASE_URL", "DATABASE_URL", "POSTGRES_URL"
+        ),
+    )
+    # Shared secret the cron endpoint requires. Vercel sends it as a bearer
+    # token on scheduled invocations; without it the endpoint is public.
+    cron_secret: str | None = Field(
+        default=None, validation_alias=AliasChoices("CRON_SECRET", "STONKBOT_CRON_SECRET")
+    )
 
     @field_validator("fee_recipient")
     @classmethod
@@ -154,6 +168,7 @@ class Settings(BaseSettings):
             else "?",
             "stonkfun_api_base": self.stonkfun_api_base,
             "vault_configured": bool(self.agent_vault_key),
+            "store": "postgres" if self.database_url else "sqlite",
             "x_configured": bool(
                 self.x_api_key
                 and self.x_api_secret

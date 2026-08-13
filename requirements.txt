@@ -6,3 +6,5 @@ click>=8.1
 tweepy>=4.14.0
 solders>=0.21.0
 cryptography>=42.0.0
+# Postgres backend: only imported when DATABASE_URL is set (serverless deploy).
+psycopg[binary]>=3.1

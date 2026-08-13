@@ -11,24 +11,27 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from .db import connect
+from .db import connect, dialect
+from .dialect import table
 
 DB_NAME = "state.db"
 
-_SCHEMA = (
-    "CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
-    """
-    CREATE TABLE IF NOT EXISTS seen_mentions (
-        mention_id TEXT PRIMARY KEY,
-        seen_at TEXT NOT NULL
+
+def _schema() -> tuple[str, ...]:
+    d = dialect()
+    return (
+        table(d, "kv", "key {text} PRIMARY KEY, value {text} NOT NULL"),
+        table(
+            d,
+            "seen_mentions",
+            "mention_id {text} PRIMARY KEY, seen_at {timestamp} NOT NULL",
+        ),
     )
-    """,
-)
 
 
 @contextmanager
 def _conn():
-    with connect(DB_NAME, _SCHEMA) as c:
+    with connect(DB_NAME, _schema()) as c:
         yield c
 
 

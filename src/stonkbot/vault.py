@@ -28,7 +28,8 @@ from datetime import UTC, datetime
 from cryptography.fernet import Fernet, InvalidToken
 
 from .config import get_settings
-from .db import connect
+from .db import connect, dialect
+from .dialect import table
 from .models import AgentAccount
 
 log = logging.getLogger("stonkbot.vault")
@@ -51,23 +52,20 @@ _SCRYPT_R = 8
 _SCRYPT_P = 1
 _SCRYPT_MAXMEM = 64 * 1024 * 1024
 
-_SCHEMA = (
-    """
-    CREATE TABLE IF NOT EXISTS agent_wallets (
-        x_handle TEXT PRIMARY KEY,
-        pubkey TEXT NOT NULL,
-        enc_secret TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        active INTEGER NOT NULL DEFAULT 1
+def _schema() -> tuple[str, ...]:
+    d = dialect()
+    return (
+        table(
+            d,
+            "agent_wallets",
+            "x_handle {text} PRIMARY KEY, "
+            "pubkey {text} NOT NULL, "
+            "enc_secret {text} NOT NULL, "
+            "created_at {timestamp} NOT NULL, "
+            "active INTEGER NOT NULL DEFAULT 1",
+        ),
+        table(d, "vault_meta", "key {text} PRIMARY KEY, value {text} NOT NULL"),
     )
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS vault_meta (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-    )
-    """,
-)
 
 
 class VaultError(Exception):
@@ -75,11 +73,24 @@ class VaultError(Exception):
 
 
 def _conn():
-    return connect(DB_NAME, _SCHEMA)
+    return connect(DB_NAME, _schema())
 
 
 def _ensure_columns(c) -> None:
-    """Add the kdf column to databases created before versioned encryption."""
+    """Add the kdf column to databases created before versioned encryption.
+
+    Only meaningful for SQLite installs that predate versioned encryption; a
+    Postgres store is always created with the column. ``IF NOT EXISTS`` on
+    ADD COLUMN is Postgres-only, so the backends take different routes to the
+    same idempotent result.
+    """
+    if dialect().name == "postgres":
+        c.execute(
+            f"ALTER TABLE agent_wallets ADD COLUMN IF NOT EXISTS kdf "
+            f"INTEGER NOT NULL DEFAULT {KDF_LEGACY_SHA256}"
+        )
+        return
+
     columns = {row[1] for row in c.execute("PRAGMA table_info(agent_wallets)")}
     if "kdf" not in columns:
         c.execute(

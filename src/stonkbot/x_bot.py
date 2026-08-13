@@ -279,60 +279,93 @@ def _fetch_mentions(api: Any, bot_id: str, since_id: int | None) -> list[Mention
     return list(reversed(mentions))
 
 
-def run_poll_loop(poll_seconds: int = 30) -> None:
+def _start() -> tuple[Any, str, str]:
+    """Authenticate and resolve the bot's own identity.
+
+    Shared by both drivers: the long-running loop does this once at boot, the
+    serverless handler once per invocation.
+    """
     api = _api()
-    settings = get_settings()
-
     bot_id, resolved_handle = _resolve_bot(api)
-    configured = (settings.x_bot_username or "").lstrip("@").lower()
-    bot_username = resolved_handle.lower()
 
-    if configured and configured != bot_username:
+    configured = (get_settings().x_bot_username or "").lstrip("@").lower()
+    if configured and configured != resolved_handle.lower():
         log.warning(
             "X_BOT_USERNAME=%s but the token authenticates as @%s — using @%s",
             configured,
             resolved_handle,
             resolved_handle,
         )
+    return api, bot_id, resolved_handle.lower()
 
+
+def poll_once(api: Any, bot_id: str, bot_username: str) -> dict:
+    """Process one page of mentions. Returns a summary for the caller to log.
+
+    This is the whole unit of work, factored out of the loop so it can also be
+    driven by a scheduler that gets one short invocation at a time. Everything
+    it touches is durable, so being called once a minute by cron and being
+    called in a `while True` are the same thing to it.
+
+    Raises on infrastructure failure — advancing the cursor past mentions that
+    were never handled would drop them silently, so the caller decides whether
+    a failure is retryable.
+    """
     since_id = get_since_id()
+    mentions = _fetch_mentions(api, bot_id, since_id)
+
+    highest = since_id or 0
+    handled = 0
+    skipped = 0
+
+    for status in mentions:
+        highest = max(highest, status.id)
+
+        if status.handle.lower() == bot_username:
+            continue
+        if not mark_seen(status.id_str):
+            log.debug("already handled %s", status.id_str)
+            skipped += 1
+            continue
+
+        try:
+            handle_mention(api, status)
+            handled += 1
+        except Exception:
+            # One bad mention must not stop the batch.
+            log.exception("failed handling mention %s", status.id_str)
+
+    # Only now is the batch genuinely processed. A crash before this point
+    # replays the batch, and mark_seen makes that harmless.
+    if highest > (since_id or 0):
+        set_since_id(highest)
+
+    prune_seen()
+    return {
+        "fetched": len(mentions),
+        "handled": handled,
+        "skipped": skipped,
+        "since_id": highest or None,
+    }
+
+
+def run_poll_loop(poll_seconds: int = 30) -> None:
+    api, bot_id, bot_username = _start()
+    settings = get_settings()
+
     log.info(
         "STONKBOT up as @%s (id=%s) dry_run=%s since_id=%s",
-        resolved_handle,
+        bot_username,
         bot_id,
         settings.dry_run,
-        since_id or "(start of timeline)",
+        get_since_id() or "(start of timeline)",
     )
 
     consecutive_errors = 0
 
     while True:
         try:
-            mentions = _fetch_mentions(api, bot_id, since_id)
-            highest = since_id or 0
-
-            for status in mentions:
-                highest = max(highest, status.id)
-
-                if status.handle.lower() == bot_username:
-                    continue
-                if not mark_seen(status.id_str):
-                    log.debug("already handled %s", status.id_str)
-                    continue
-
-                try:
-                    handle_mention(api, status)
-                except Exception:
-                    # One bad mention must not stop the loop.
-                    log.exception("failed handling mention %s", status.id_str)
-
-            # Only now is the batch genuinely processed. A crash before this
-            # point replays the batch, and mark_seen makes that harmless.
-            if highest > (since_id or 0):
-                since_id = highest
-                set_since_id(highest)
-
-            prune_seen()
+            poll_once(api, bot_id, bot_username)
             consecutive_errors = 0
         except Exception:
             consecutive_errors += 1
@@ -341,3 +374,9 @@ def run_poll_loop(poll_seconds: int = 30) -> None:
         # Back off when X or the network is unhappy, up to 5 minutes.
         delay = poll_seconds * min(2**consecutive_errors, 10) if consecutive_errors else poll_seconds
         time.sleep(min(delay, 300))
+
+
+def poll_once_standalone() -> dict:
+    """One full cycle including authentication — the serverless entry point."""
+    api, bot_id, bot_username = _start()
+    return poll_once(api, bot_id, bot_username)

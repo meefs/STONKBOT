@@ -20,42 +20,53 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 
 from .config import get_settings
-from .db import connect
+from .db import connect, dialect
+from .dialect import table
 
 log = logging.getLogger("stonkbot.fees")
 
 DB_NAME = "fees.db"
 
-_SCHEMA = """
-            CREATE TABLE IF NOT EXISTS fee_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                x_handle TEXT,
-                mint TEXT,
-                amount_sol REAL NOT NULL,
-                recipient TEXT NOT NULL,
-                status TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'platform',
-                ref_handle TEXT,
-                signature TEXT
-            )
-            """
+def _schema() -> str:
+    return table(
+        dialect(),
+        "fee_events",
+        "id {serial_pk}, "
+        "x_handle {text}, "
+        "mint {text}, "
+        "amount_sol REAL NOT NULL, "
+        "recipient {text} NOT NULL, "
+        "status {text} NOT NULL, "
+        "created_at {timestamp} NOT NULL, "
+        "role {text} NOT NULL DEFAULT 'platform', "
+        "ref_handle {text}, "
+        "signature {text}",
+    )
+
+
+_MIGRATIONS = (
+    ("role", "ALTER TABLE fee_events ADD COLUMN role TEXT DEFAULT 'platform'"),
+    ("ref_handle", "ALTER TABLE fee_events ADD COLUMN ref_handle TEXT"),
+    ("signature", "ALTER TABLE fee_events ADD COLUMN signature TEXT"),
+)
 
 
 @contextmanager
 def _conn():
     """Fee ledger. Stored under the same owner-only permissions as the vault:
     it links X handles to wallet addresses and amounts."""
-    with connect(DB_NAME, _SCHEMA) as c:
+    with connect(DB_NAME, _schema()) as c:
         # Additive migrations for databases created by earlier versions.
-        cols = {r[1] for r in c.execute("PRAGMA table_info(fee_events)").fetchall()}
-        for column, ddl in (
-            ("role", "ALTER TABLE fee_events ADD COLUMN role TEXT DEFAULT 'platform'"),
-            ("ref_handle", "ALTER TABLE fee_events ADD COLUMN ref_handle TEXT"),
-            ("signature", "ALTER TABLE fee_events ADD COLUMN signature TEXT"),
-        ):
-            if column not in cols:
-                c.execute(ddl)
+        # Postgres takes ADD COLUMN IF NOT EXISTS; SQLite has no such clause,
+        # so it inspects the table first.
+        if dialect().name == "postgres":
+            for _, ddl in _MIGRATIONS:
+                c.execute(ddl.replace("ADD COLUMN", "ADD COLUMN IF NOT EXISTS"))
+        else:
+            cols = {r[1] for r in c.execute("PRAGMA table_info(fee_events)").fetchall()}
+            for column, ddl in _MIGRATIONS:
+                if column not in cols:
+                    c.execute(ddl)
         yield c
 
 
@@ -118,24 +129,23 @@ def record_expected(
         platform_amount = split["total"]
 
     with _conn() as c:
-        cur = c.execute(
+        # insert_returning_id, not lastrowid: Postgres has no lastrowid.
+        platform_id = c.insert_returning_id(
             "INSERT INTO fee_events "
             "(x_handle, mint, amount_sol, recipient, status, created_at, role, ref_handle) "
             "VALUES (?,?,?,?,?,?,?,?)",
             (handle, mint, platform_amount, s.fee_recipient, "expected", now,
              "platform", ref),
         )
-        platform_id = cur.lastrowid
         referrer_id = None
         if pay_referrer:
-            cur = c.execute(
+            referrer_id = c.insert_returning_id(
                 "INSERT INTO fee_events "
                 "(x_handle, mint, amount_sol, recipient, status, created_at, role, ref_handle) "
                 "VALUES (?,?,?,?,?,?,?,?)",
                 (handle, mint, referrer_amount, ref_recipient, "expected", now,
                  "referrer", ref),
             )
-            referrer_id = cur.lastrowid
 
     return {
         "total_sol": split["total"],
