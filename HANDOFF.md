@@ -161,6 +161,14 @@ Bot:
 - `X_BOT_USERNAME` is now advisory only: the loop calls `get_me()` and trusts
   the handle the token actually authenticates as, logging a warning on
   mismatch. Set it anyway as a tripwire against wiring the wrong account.
+- **The bot posts as @stonkfunbot, but the X app is owned by @PhantomCap_ai.**
+  The console's "Generate access token" button always mints a token for the
+  app owner, so using it would make the bot post from the company account.
+  Use `python scripts/mint_x_token.py` instead: it runs 3-legged OAuth so
+  @stonkfunbot authorizes the app and X issues a token scoped to the bot.
+  Billing and rate limits stay on the Phantom Capital app either way. The
+  script refuses quietly-wrong outcomes by printing a warning if the
+  authorized handle is not @stonkfunbot.
 - The X surface is **v2** (`tweepy.Client`). v1.1 `statuses/mentions_timeline`
   and `statuses/update` are retired — do not reintroduce `tweepy.API`.
   Auth is OAuth 1.0a user context, not app-only bearer: replies need it.
