@@ -118,6 +118,22 @@ class Settings(BaseSettings):
     # against the live timeline: mentions are read and handled, replies are
     # logged instead of posted.
     observe_only: bool = Field(default=False, validation_alias=_both("observe_only"))
+
+    # --- Backlog guard ------------------------------------------------------
+    # A bot that has been offline accumulates mentions. Because the cursor only
+    # moves forward, coming back online means answering every one of them in a
+    # burst — the first thing the account does in public would be replying to a
+    # week of stale commands. These stop that from happening by accident: the
+    # poll refuses to run when the waiting pile is too big or too old, and says
+    # what it would have answered. Proceeding is an explicit decision.
+    backlog_limit: int = Field(default=5, validation_alias=_both("backlog_limit"))
+    backlog_max_age_hours: float = Field(
+        default=24.0, validation_alias=_both("backlog_max_age_hours")
+    )
+    accept_backlog: bool = Field(
+        default=False, validation_alias=_both("accept_backlog")
+    )
+
     data_dir: str = Field(default="data", validation_alias=_both("data_dir"))
     # Set → state lives in Postgres (serverless, no durable disk). Unset →
     # SQLite under data_dir. Also accepts POSTGRES_URL, which is what the
@@ -174,6 +190,10 @@ class Settings(BaseSettings):
             "stonkfun_api_base": self.stonkfun_api_base,
             "vault_configured": bool(self.agent_vault_key),
             "store": "postgres" if self.database_url else "sqlite",
+            "observe_only": self.observe_only,
+            "backlog_limit": self.backlog_limit,
+            "backlog_max_age_hours": self.backlog_max_age_hours,
+            "accept_backlog": self.accept_backlog,
             "x_configured": bool(
                 self.x_api_key
                 and self.x_api_secret

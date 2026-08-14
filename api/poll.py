@@ -67,9 +67,21 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this name
             return
 
         try:
-            from stonkbot.x_bot import poll_once_standalone
+            from stonkbot.x_bot import BacklogTooLarge, poll_once_standalone
 
-            summary = poll_once_standalone()
+            try:
+                summary = poll_once_standalone()
+            except BacklogTooLarge as e:
+                # 409, not 500: nothing is broken and nothing was consumed.
+                # The bot is refusing to answer a pile-up unattended, and a
+                # human has to decide. A distinct status keeps this out of the
+                # "cron is failing" bucket in Vercel's history.
+                log.error("backlog guard tripped: %s", e)
+                self._respond(
+                    409,
+                    {"ok": False, "error": "backlog_guard", **e.report},
+                )
+                return
         except Exception as e:
             # 500 so a failed cycle is visible in Vercel's cron history rather
             # than silently reported as a success.

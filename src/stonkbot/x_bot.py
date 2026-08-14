@@ -15,6 +15,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from .config import get_settings
@@ -24,7 +25,7 @@ from .launch import run_launch
 from .models import LaunchRequest
 from .responses import MAX_REPLY_LENGTH, dry_run, error, fee_note, success
 from .solana_pay import get_balance_sol
-from .state import get_since_id, mark_seen, prune_seen, set_since_id
+from .state import get_since_id, is_seen, mark_seen, prune_seen, set_since_id
 from .stonkfun_client import StonkFunClient, StonkFunError
 from .vault import VaultError
 from .vault import get as get_agent
@@ -57,10 +58,120 @@ class Mention:
     id: int
     text: str
     handle: str
+    created_at: datetime | None = None
 
     @property
     def id_str(self) -> str:
         return str(self.id)
+
+    @property
+    def url(self) -> str:
+        return f"https://x.com/i/status/{self.id}"
+
+    def age_hours(self, now: datetime | None = None) -> float | None:
+        if self.created_at is None:
+            return None
+        reference = now or datetime.now(UTC)
+        return (reference - self.created_at).total_seconds() / 3600.0
+
+
+class BacklogTooLarge(RuntimeError):
+    """The pile of unanswered mentions is too big to work through unattended.
+
+    Carries the report so a caller can show the operator exactly what it was
+    about to say, and to whom, before they decide.
+    """
+
+    def __init__(self, report: dict) -> None:
+        self.report = report
+        super().__init__(
+            f"{report['pending']} mentions waiting "
+            f"(limit {report['limit']}, oldest {report['oldest_hours_text']}) "
+            "— refusing to poll. Set STONKBOT_ACCEPT_BACKLOG=true to proceed, "
+            "or skip them with: stonkbot cursor --set <newest mention id>"
+        )
+
+
+def _describe_backlog(pending: list[Mention]) -> dict:
+    """What the bot would answer, without answering any of it.
+
+    ``parse`` is pure, so naming the intent for each waiting mention costs
+    nothing and is the difference between "17 mentions" and "17 mentions, 3 of
+    which are launch commands".
+    """
+    settings = get_settings()
+    now = datetime.now(UTC)
+
+    ages = [m.age_hours(now) for m in pending]
+    known_ages = [a for a in ages if a is not None]
+    oldest = max(known_ages) if known_ages else None
+
+    items = []
+    for mention in pending:
+        text = mention.text
+        bot_username = (settings.x_bot_username or "").lstrip("@")
+        if bot_username:
+            text = re.sub(rf"@{re.escape(bot_username)}\b", " ", text, flags=re.I)
+        items.append(
+            {
+                "id": mention.id_str,
+                "handle": mention.handle,
+                "intent": parse(text).kind,
+                "url": mention.url,
+                "age_hours": mention.age_hours(now),
+            }
+        )
+
+    return {
+        "pending": len(pending),
+        "limit": settings.backlog_limit,
+        "max_age_hours": settings.backlog_max_age_hours,
+        "oldest_hours": oldest,
+        "oldest_hours_text": f"{oldest:.1f}h" if oldest is not None else "unknown",
+        "items": items,
+    }
+
+
+def _check_backlog(pending: list[Mention]) -> None:
+    """Refuse to process an unattended pile-up.
+
+    The cursor only moves forward, so every mention that arrives while the bot
+    is down is still waiting when it comes back — and would be answered all at
+    once. Tripping here leaves the cursor and the handled set untouched, so
+    nothing is consumed and the decision stays open.
+    """
+    settings = get_settings()
+    if settings.accept_backlog or not pending:
+        return
+
+    report = _describe_backlog(pending)
+    too_many = report["pending"] > settings.backlog_limit
+    too_old = (
+        report["oldest_hours"] is not None
+        and report["oldest_hours"] > settings.backlog_max_age_hours
+    )
+    if not (too_many or too_old):
+        return
+
+    reason = "too many" if too_many else "too old"
+    log.error(
+        "BACKLOG GUARD (%s): %d mentions waiting, oldest %s. Nothing was "
+        "answered and the cursor was not moved.",
+        reason,
+        report["pending"],
+        report["oldest_hours_text"],
+    )
+    for item in report["items"]:
+        age = f"{item['age_hours']:.1f}h" if item["age_hours"] is not None else "?"
+        log.error(
+            "  would reply to @%s (%s, %s old) → %s intent | %s",
+            item["handle"],
+            item["id"],
+            age,
+            item["intent"],
+            item["url"],
+        )
+    raise BacklogTooLarge(report)
 
 
 def _api() -> Any:
@@ -270,7 +381,7 @@ def _fetch_mentions(api: Any, bot_id: str, since_id: int | None) -> list[Mention
         since_id=since_id or None,
         max_results=20,
         expansions=["author_id"],
-        tweet_fields=["author_id"],
+        tweet_fields=["author_id", "created_at"],
         user_fields=["username"],
         user_auth=True,
     )
@@ -286,7 +397,14 @@ def _fetch_mentions(api: Any, bot_id: str, since_id: int | None) -> list[Mention
             # handle keys the wallet vault, so guessing one is not an option.
             log.warning("mention %s has no resolvable author, skipping", tweet.id)
             continue
-        mentions.append(Mention(id=tweet.id, text=tweet.text, handle=handle))
+        created = getattr(tweet, "created_at", None)
+        if created is not None and created.tzinfo is None:
+            created = created.replace(tzinfo=UTC)
+        mentions.append(
+            Mention(
+                id=tweet.id, text=tweet.text, handle=handle, created_at=created
+            )
+        )
 
     # v2 returns newest first; the loop's since_id bookkeeping wants oldest first.
     return list(reversed(mentions))
@@ -326,6 +444,17 @@ def poll_once(api: Any, bot_id: str, bot_username: str) -> dict:
     """
     since_id = get_since_id()
     mentions = _fetch_mentions(api, bot_id, since_id)
+
+    # Before touching anything: is this a normal tick, or a pile-up from a
+    # period offline? Raises rather than returning, so a caller cannot mistake
+    # a refusal for an empty poll.
+    _check_backlog(
+        [
+            m
+            for m in mentions
+            if m.handle.lower() != bot_username and not is_seen(m.id_str)
+        ]
+    )
 
     highest = since_id or 0
     handled = 0
@@ -380,6 +509,12 @@ def run_poll_loop(poll_seconds: int = 30) -> None:
         try:
             poll_once(api, bot_id, bot_username)
             consecutive_errors = 0
+        except BacklogTooLarge as e:
+            # Not retryable, and retrying would only reprint the warning every
+            # 30 seconds until someone happened to look. Stop and let the
+            # operator decide.
+            log.error("%s", e)
+            return
         except Exception:
             consecutive_errors += 1
             log.exception("poll cycle failed (%d in a row)", consecutive_errors)

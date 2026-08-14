@@ -12,13 +12,15 @@ owned by @PhantomCap_ai, so a token minted the wrong way authenticates fine and
 posts from the wrong account. Better to stop here than to find out from a reply
 that has already gone out.
 
-    python scripts/dry_run.py            # verify, then start the loop
-    python scripts/dry_run.py --check    # verify and stop
+    python scripts/dry_run.py                   # verify, then start the loop
+    python scripts/dry_run.py --check           # verify and stop
+    python scripts/dry_run.py --accept-backlog  # also work through a pile-up
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -65,6 +67,11 @@ def _fail(message: str) -> None:
 
 def main() -> None:
     check_only = "--check" in sys.argv
+
+    # Set before the settings cache is populated, so the flag is read as if it
+    # had been in the environment all along.
+    if "--accept-backlog" in sys.argv:
+        os.environ["STONKBOT_ACCEPT_BACKLOG"] = "true"
 
     from stonkbot.config import get_settings
 
@@ -125,6 +132,16 @@ def main() -> None:
         print(f"  ok    StonkFun reachable ({len(pairs)} launchable pairs)")
     except Exception as e:
         _fail(f"StonkFun unreachable: {e}")
+
+    # 5. backlog posture
+    if settings.accept_backlog:
+        print("  !!    backlog guard DISABLED — a pile-up will be answered in full")
+    else:
+        print(
+            f"  ok    backlog guard on "
+            f"(stops above {settings.backlog_limit} waiting "
+            f"or {settings.backlog_max_age_hours:.0f}h old)"
+        )
 
     print(f"\nReady. Mention @{handle} with:  register  |  help  |  balance")
 

@@ -82,6 +82,20 @@ def mark_seen(mention_id: str) -> bool:
         return cur.rowcount > 0
 
 
+def is_seen(mention_id: str) -> bool:
+    """Whether a mention has already been handled, without claiming it.
+
+    :func:`mark_seen` is a claim — asking it a question changes the answer. The
+    backlog guard needs to count what is still waiting *before* deciding
+    whether to touch any of it, so it needs a read that leaves no trace.
+    """
+    with _conn() as c:
+        row = c.execute(
+            "SELECT 1 FROM seen_mentions WHERE mention_id=?", (str(mention_id),)
+        ).fetchone()
+    return row is not None
+
+
 def unset_since_id() -> None:
     """Clear the cursor so the next poll starts from the timeline head again.
 

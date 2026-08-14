@@ -1,5 +1,16 @@
 <!doctype html>
-<html lang="en" class="no-js">
+<!--
+  data-cta is the only switch that decides whether this page invites people to
+  tweet at the bot. "soon" gates every call to action; "live" restores them.
+
+  It fails closed: the CSS hides the live CTAs unless data-cta is exactly
+  "live", so a typo or a missing attribute leaves the gated state in place
+  rather than promising a bot that isn't answering. Same reasoning as
+  observe_only in the bot itself.
+
+  To go live: change "soon" to "live" here. That is the whole change.
+-->
+<html lang="en" class="no-js" data-cta="soon">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -73,9 +84,10 @@
       <a href="#faq">FAQ</a>
     </nav>
 
-    <a class="btn btn-primary btn-sm" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+    <a class="btn btn-primary btn-sm cta-live" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
       Launch on X
     </a>
+    <span class="btn btn-gated btn-sm cta-soon">Closed beta</span>
 
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
       <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
@@ -88,9 +100,20 @@
     <a href="#economics">Economics</a>
     <a href="#security">Security</a>
     <a href="#faq">FAQ</a>
-    <a class="mobile-cta" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">Launch on X →</a>
+    <a class="mobile-cta cta-live" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">Launch on X →</a>
+    <span class="mobile-cta mobile-cta-gated cta-soon">Closed beta — not open yet</span>
   </nav>
 </header>
+
+<div class="beta-strip cta-soon" role="status">
+  <div class="wrap beta-strip-inner">
+    <span class="beta-badge">Closed beta</span>
+    <p>
+      STONKBOT isn't answering mentions yet. Everything below describes what it does;
+      the live market data is real. Tweeting at the bot right now won't get a reply.
+    </p>
+  </div>
+</div>
 
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track">
@@ -132,10 +155,14 @@
         </p>
 
         <div class="cta-row reveal">
-          <a class="btn btn-primary" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+          <a class="btn btn-primary cta-live" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
             Launch on X
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
           </a>
+          <span class="btn btn-gated cta-soon">
+            <span class="gated-dot" aria-hidden="true"></span>
+            Closed beta — not open yet
+          </span>
           <a class="btn btn-ghost" href="#how">See how it works</a>
         </div>
 
@@ -339,7 +366,6 @@
           <p class="econ-src">
             <span class="src-badge src-ok">Verified</span>
             <a href="https://www.stonkfun.xyz/developers" target="_blank" rel="noopener noreferrer">StonkFun API docs</a>
-      <a href="/privacy">Privacy &amp; data</a>
           </p>
         </article>
 
@@ -593,12 +619,18 @@
   <section class="final" aria-labelledby="final-h">
     <div class="wrap final-inner reveal">
       <h2 id="final-h">Pick a stock. Ship a token.</h2>
-      <p>It starts with one tweet.</p>
-      <a class="btn btn-primary btn-lg" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
+      <p class="cta-live">It starts with one tweet.</p>
+      <p class="cta-soon">It will start with one tweet.</p>
+      <a class="btn btn-primary btn-lg cta-live" href="https://x.com/stonkfunbot" target="_blank" rel="noopener noreferrer">
         Launch on X
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
       </a>
-      <p class="final-cmd"><code>@stonkfunbot register</code></p>
+      <span class="btn btn-gated btn-lg cta-soon">
+        <span class="gated-dot" aria-hidden="true"></span>
+        Closed beta
+      </span>
+      <p class="final-cmd cta-live"><code>@stonkfunbot register</code></p>
+      <p class="final-cmd cta-soon">The bot isn't taking commands yet.</p>
     </div>
   </section>
 </main>

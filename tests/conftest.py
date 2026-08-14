@@ -19,6 +19,15 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setenv("STONKBOT_SERVICE_FEE_SOL", "0.1")
     monkeypatch.setenv("STONKBOT_REFERRAL_SHARE", "0.30")
     monkeypatch.setenv("STONKBOT_MAX_LAUNCH_COST_SOL", "1.0")
+    # Settings fall back to .env, so a developer's local file silently changed
+    # what the suite was testing: with STONKBOT_OBSERVE_ONLY=true set locally,
+    # the tests asserting that posting is the default failed on their machine
+    # and passed in CI, where there is no .env. Pin every switch a local file
+    # might carry, so the ambient environment cannot move the goalposts.
+    monkeypatch.setenv("STONKBOT_OBSERVE_ONLY", "false")
+    monkeypatch.setenv("STONKBOT_ACCEPT_BACKLOG", "false")
+    monkeypatch.setenv("STONKBOT_BACKLOG_LIMIT", "5")
+    monkeypatch.setenv("STONKBOT_BACKLOG_MAX_AGE_HOURS", "24")
     # Settings are cached; clear around every test so env changes take effect.
     get_settings.cache_clear()
     # The guard is a module-level singleton holding rate-limit counters, so it
