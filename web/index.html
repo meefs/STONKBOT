@@ -40,7 +40,15 @@
 
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon-180.png">
-<link rel="stylesheet" href="/styles.css">
+<!--
+  Versioned deliberately. styles.css is served with max-age=3600, and the CTA
+  gate is enforced *in CSS* — so a returning visitor with a cached stylesheet
+  would get the new HTML (which contains both CTA variants) with old CSS (which
+  knows how to hide neither), and see the live "Launch on X" button next to the
+  gated one. Bump this whenever a change to styles.css has to land together
+  with a change to this file.
+-->
+<link rel="stylesheet" href="/styles.css?v=2">
 
 <script type="application/ld+json">
 {
