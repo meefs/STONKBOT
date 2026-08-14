@@ -384,3 +384,137 @@ this before Privy sign-path is confirmed working end-to-end.
    through it successfully — point pump.fun signing at Privy too.
 5. Real SOL / real treasury flow: single test launch, small amount, manual
    verification the treasury cut landed correctly, before opening it up.
+
+---
+
+## 9. BLOCK — name collision with stonkbot.vip
+
+Verified 2026-08-14 by reading the site directly. Every detail checks out, and
+the overlap is worse than "same name".
+
+**Them:** StonkBot — Solana mainnet. Redirects a coin's **pump.fun creator
+fees** to a reward wallet, converts them hourly into one of 36 **xStocks**
+(Backed Finance tokenized equities), distributes pro-rata to holders above a
+0.1% balance threshold. Takes 0%. Token `$STONKBOT`
+(`H3EKcm3BayFEXgBo1njpg3v6FhSUr1FRyQRfuJVYpump`), **paired against SPYx**.
+Socials: @stonkbotsolana, @StonkBotRewards, Telegram @StonkRewardsBot.
+
+**Why this is not a mild collision:** same name, same chain, same xStocks
+vocabulary, same audience — and their token is *paired against a tokenized
+stock*, which is our core mechanic. They also sit on pump.fun creator fees,
+which is exactly what §8 parks. They have the ticker. We do not.
+
+### What actually carries the name
+
+| Layer | Occurrences | Class |
+|---|---|---|
+| Python package `src/stonkbot/`, module path `stonkbot.*` | 43 imports over 16 files | **structural** |
+| `pyproject.toml` — `name`, `[project.scripts] stonkbot=` | 2 | **structural** |
+| GitHub repo `PhantomCapAI/STONKBOT` | 1 remote | **structural** |
+| Env prefix `STONKBOT_*` | 27 fields | **near-free, see below** |
+| Site copy | 28 in `index.html`, 12 in `privacy.html` | cosmetic |
+| Bot reply strings + CLI help | ~7 user-visible | cosmetic |
+| README / HANDOFF | many | cosmetic |
+
+**Not affected at all:**
+
+- **DB table names are generic** — `kv`, `seen_mentions`, `launch_keys`,
+  `vault_meta`, fee ledger. No table carries the product name.
+- **DB filenames are generic** — `state.db`, `vault.db`, `fees.db`,
+  `launches.db`, under `data_dir`. A package rename cannot orphan the vault.
+- **Domain** is `stonkfunbot.vercel.app` — already not "stonkbot".
+- **X handle** is `@StonkFunBot` — already differentiated.
+
+**The env prefix reads structural and is not.** Every setting already accepts a
+bare alias — `_both()` returns `STONKBOT_FOO` and `FOO`. In practice:
+
+- **Vercel has zero `STONKBOT_`-prefixed vars.** `AGENT_VAULT_KEY` and
+  `CRON_SECRET` are bare.
+- The local `.env` has exactly **three**: `STONKBOT_DATA_DIR`,
+  `STONKBOT_DRY_RUN`, `STONKBOT_OBSERVE_ONLY`. Every secret is already bare.
+
+So "env var names people have already set" is three lines in one gitignored
+file. Nobody outside this machine has set anything prefixed.
+
+### Real cost
+
+Mechanical: **1-2 hours.** A package rename (`git mv`, one `pyproject` edit,
+sed the imports), a repo rename (GitHub redirects the old URL), a copy pass,
+and keep `STONKBOT_*` as a deprecated alias beside the new prefix so nothing
+breaks mid-flight.
+
+**The timing is the whole argument: there are currently 0 agent wallets and 0
+launches.** Nothing is keyed to the name, no user holds a wallet address tied
+to it, no token exists under our ticker. Renaming today costs an afternoon.
+Renaming after the first real launch means live wallets, an on-chain creator
+history, and users who learned one name.
+
+### Decision owed
+
+Nothing renamed until the name is chosen. `@StonkFunBot` and
+`stonkfunbot.vercel.app` are already free of the collision, which makes
+"StonkFunBot" the lowest-friction candidate — it is what the bot already
+answers to.
+
+---
+
+## 10. Bankr — assessment (researched 2026-08-14)
+
+Read from `docs.bankr.bot` and `skills.bankr.bot` in a real browser.
+
+### The finding that decides it
+
+**Bankr's token-launch path cannot reach StonkFun.** Launches deploy to
+**Robinhood Chain (default) or Base**, into **Uniswap V4** pools via
+Doppler/Clanker, quoted in **WETH**. Partner deploys are Base-only. Solana
+appears in Bankr's wallet and trading surface, never in the launch path.
+
+StonkFun is Solana + Raydium + xStock quote pairs. No configuration of Bankr
+launches a StonkFun token. **Bankr is therefore not a component of our launch
+flow, and not a competitor to it either — it is an adjacent product on
+different rails.** The overlap is the interface (tag a bot on X, get a token),
+not the product.
+
+### Their fee model vs ours
+
+| | STONKBOT | Bankr |
+|---|---|---|
+| Charge to launch | 0.1 SOL flat, on success only | free; gas sponsored 3/day (10/day Club) |
+| Ongoing take | none | 1.75% total swap fee on every trade, forever |
+| Creator receives | 50% of StonkFun's 1% pool fee = **0.5% of volume** | 0.665% direct + 0.285% LP compounding = **0.95% of volume** |
+| Platform keeps | our flat fee only | 0.475% protocol + 0.2375% BNKR buyback + ~0.0875% Doppler |
+| Supply | StonkFun's | 100B fixed; 85% pool / 15% creator vesting (1yr, 30-day cliff, optional off) |
+
+Not directly comparable — ours is a one-off service fee on someone else's
+launchpad, theirs a perpetual protocol rake on their own. Their creator side
+(0.95%) beats StonkFun's (0.5%), which is a StonkFun limitation, not something
+we can price around.
+
+Limits worth knowing: 50 launches/day standard, 100 Club; **1 per minute**; an
+optional 24h wallet-age anti-sybil gate; and spam detection "enforced hardest
+on the X path, where a mention can kick off a deploy" — repeatedly breaching
+one-per-minute restricts the account for 24h.
+
+### What is worth adopting
+
+- **Their X-mention flow is not better than ours.** `@bankrbot deploy a token
+  called X on base` is the same shape as our intent parser. What they have that
+  we do not is rate discipline aimed specifically at a mention that can trigger
+  a spend. We already have per-user and global limits plus a daily budget —
+  same idea, no change needed.
+- **Privy.** Bankr signs via Privy. §8 already blocks pump.fun work on a Privy
+  sign-path, and Bankr is working prior art for that pattern. Reference, not
+  dependency.
+- **Skills catalog** (67 Bankr + 24 Aeon + 5 Uniswap + 5 Base + 16 EthSkills).
+  Overwhelmingly EVM/Base. The chain-agnostic ones — Quicknode, Alchemy,
+  Zerion — are RPC/data, which we already have via `SOLANA_RPC_URL`.
+- **Nothing hand-rolled here should be replaced.** The vault, txguard,
+  idempotency ledger and fee ledger are Solana- and StonkFun-specific. Bankr
+  has no Solana-launch equivalent to swap in.
+
+### Verdict
+
+**Adopt** nothing structural today. **Keep** the current stack. **Drop**
+nothing. **Watch**: if Bankr ships Solana launches they become a direct
+competitor with better creator economics and a bigger distribution surface —
+monitor, do not integrate.
