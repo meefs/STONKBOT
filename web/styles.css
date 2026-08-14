@@ -722,7 +722,7 @@ tbody td { color: var(--text-dim); }
   cursor: default;
 }
 
-/* Strip under the nav. Deliberately states no date — see HANDOFF §5c. */
+/* Strip under the nav. States no date, deliberately — see HANDOFF §5c. */
 .beta-strip {
   border-bottom: 1px solid var(--line);
   background: var(--surface);

@@ -146,6 +146,21 @@ Decided 2026-08-13: **all-in on Vercel**, one platform for site and bot.
   account is on Pro.
   After upgrading, change that one line to `* * * * *`. Nothing else moves.
   (Pro also gives per-minute precision; Hobby is ±59 min even on a daily job.)
+- **Cadence is the only thing that costs money.** Verified against the docs
+  2026-08-14, correcting two earlier wrong assumptions:
+  - Function duration on Hobby is **300s default and 300s maximum** — exactly
+    what `vercel.json` already declares. A launch polls ~60s, so there is no
+    duration risk on Hobby and no reason to upgrade for it.
+  - **Vercel Postgres no longer exists.** Durable storage is Marketplace now,
+    and a free plan is provisionable (`vercel install neon --plan free`), so
+    `DATABASE_URL` does **not** require Pro or any spend.
+  - Cron cadence genuinely does: Hobby minimum interval is once per day and
+    sub-daily expressions fail at deploy.
+- **Do not test the serverless path with the cron.** Trigger it directly —
+  `vercel crons run /api/poll`, or curl with the bearer token. That exercises
+  auth, persistence, cursor advance and reply generation on demand. The cron
+  proves exactly one extra thing: that the scheduler fires. ±59 min is fine
+  for a single yes/no.
 - One SQL flavour is written (SQLite's, `?` placeholders); `dialect.py`
   rewrites it for Postgres. Postgres aborts a transaction on a failed
   statement, so `claim()` uses `INSERT OR IGNORE` + rowcount rather than
@@ -174,6 +189,47 @@ Bot:
   Auth is OAuth 1.0a user context, not app-only bearer: replies need it.
 - Recommended: `SOLANA_RPC_URL` (dedicated; public endpoint rate-limited),
   `STONKBOT_FEE_RECIPIENT`, `STONKBOT_MAX_LAUNCH_COST_SOL`, `STONKBOT_DATA_DIR`
+
+---
+
+## 5c. Public posture — the CTA gate and the backlog guard
+
+Two switches decide whether STONKBOT makes a promise it can't keep. Both fail
+closed, and neither should be "fixed" by loosening the default.
+
+**`data-cta` on `<html>` in `web/index.html`.** Decides whether the site asks
+anyone to tweet at the bot. `"soon"` gates every CTA; `"live"` restores them.
+Going live is editing that one attribute — no other change. The CSS hides the
+live CTAs unless the value is exactly `"live"`, so a typo or a dropped
+attribute leaves the gated state rather than restoring the invitation.
+
+- The beta strip states **no date**, deliberately. Do not add a countdown, an
+  ETA, or "launching this week" — it becomes a promise someone has to honor.
+- `styles.css` is referenced with `?v=N` **on purpose**. The gate is enforced
+  in CSS, and the stylesheet is served `max-age=3600`, so unversioned it means
+  a returning visitor gets new HTML (both CTA variants) against old CSS (hides
+  neither) and sees the live button next to the gated one. This was observed on
+  production. **Bump `v` whenever a `styles.css` change must land with an
+  `index.html` change.**
+- The two remaining `x.com/stonkfunbot` links (hero lede, footer) are plain
+  links to the profile, not calls to action. They stay in both states.
+
+**Backlog guard in `poll_once`.** The cursor only moves forward, so mentions
+that arrive while the bot is offline are all still waiting when it returns and
+would be answered in one burst — the account's first public act after a
+silence. The poll refuses above `STONKBOT_BACKLOG_LIMIT` (5) pending or
+`STONKBOT_BACKLOG_MAX_AGE_HOURS` (24) old, logs each mention it would have
+answered with the parsed intent, and **leaves the cursor and the handled set
+untouched** so nothing is consumed and the decision stays open.
+
+- Proceed deliberately: `STONKBOT_ACCEPT_BACKLOG=true`, or
+  `python scripts/dry_run.py --accept-backlog`.
+- Skip the pile instead: `stonkbot cursor --set <newest mention id>`.
+- The long-running loop **stops** on a trip rather than retrying every 30s.
+  `/api/poll` answers **409**, not 500 — nothing is broken and nothing was
+  consumed, so it stays out of the "cron is failing" bucket.
+- Do not raise the limits to make a trip go away. A trip means a human has to
+  look at what is waiting.
 
 ---
 
