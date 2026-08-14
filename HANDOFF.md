@@ -205,14 +205,32 @@ attribute leaves the gated state rather than restoring the invitation.
 
 - The beta strip states **no date**, deliberately. Do not add a countdown, an
   ETA, or "launching this week" — it becomes a promise someone has to honor.
-- `styles.css` is referenced with `?v=N` **on purpose**. The gate is enforced
-  in CSS, and the stylesheet is served `max-age=3600`, so unversioned it means
-  a returning visitor gets new HTML (both CTA variants) against old CSS (hides
-  neither) and sees the live button next to the gated one. This was observed on
-  production. **Bump `v` whenever a `styles.css` change must land with an
-  `index.html` change.**
+- **`styles.css` and `main.js` are both referenced with `?v=N`, sharing one
+  number. Bump it whenever a change to either must land with an `index.html`
+  change.** There is no build step, so nothing fingerprints these filenames and
+  both are served `max-age=3600`. This has broken twice on production: new HTML
+  against old CSS showed the live CTA beside the gated one, and new HTML
+  against old JS left the live ticker permanently hidden. `privacy.html` is
+  intentionally left unversioned — it has no gate and no ticker, so stale
+  assets change nothing there.
 - The two remaining `x.com/stonkfunbot` links (hero lede, footer) are plain
   links to the profile, not calls to action. They stay in both states.
+
+**No unsourced numbers on the site.** Anything numeric either comes from a live
+API call or carries a badge saying where it came from — see the Economics
+cards, which label StonkFun's launch cost "Not published / quoted live" and the
+0.35 SOL figure "Guidance — not a StonkFun figure". Hold new content to that
+bar. The header ticker is driven from `/pairs?launchable=true` and deliberately
+carries **no numbers at all** (symbol and company name only), so there is
+nothing in it that can go stale; it ships `hidden` and only unhides once real
+pairs arrive, and re-hides if a refresh fails.
+
+**Still illustrative, and disclosed as such:** the demo terminal (fake wallet
+`7xKX…9fPq`, `$GAMESTOP`, a placeholder token URL) is labelled "Illustration"
+with a caption saying the addresses are placeholders, and the hero flow diagram
+uses `$GAMESTOP` as an example. Both are fabricated. They are honest today
+because they are labelled, but the first real launch should replace them with
+a real one.
 
 **Backlog guard in `poll_once`.** The cursor only moves forward, so mentions
 that arrive while the bot is offline are all still waiting when it returns and
