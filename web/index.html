@@ -48,7 +48,7 @@
   gated one. Bump this whenever a change to styles.css has to land together
   with a change to this file.
 -->
-<link rel="stylesheet" href="/styles.css?v=2">
+<link rel="stylesheet" href="/styles.css?v=3">
 
 <script type="application/ld+json">
 {
@@ -123,21 +123,17 @@
   </div>
 </div>
 
-<div class="ticker" aria-hidden="true">
-  <div class="ticker-track">
-    <span class="tick">SPYX <b>S&amp;P 500</b></span><span class="tick">NVDAX <b>NVIDIA</b></span>
-    <span class="tick">TSLAX <b>TESLA</b></span><span class="tick">GMEX <b>GME</b></span>
-    <span class="tick">AAPLX <b>APPLE</b></span><span class="tick">METAX <b>META</b></span>
-    <span class="tick">COINX <b>COINBASE</b></span><span class="tick">MSTRX <b>MICROSTRATEGY</b></span>
-    <span class="tick">HOODX <b>ROBINHOOD</b></span><span class="tick">GOOGLX <b>GOOGLE</b></span>
-    <span class="tick">QQQX <b>QQQ</b></span><span class="tick">PLTRX <b>PALANTIR</b></span>
-    <span class="tick">SPYX <b>S&amp;P 500</b></span><span class="tick">NVDAX <b>NVIDIA</b></span>
-    <span class="tick">TSLAX <b>TESLA</b></span><span class="tick">GMEX <b>GME</b></span>
-    <span class="tick">AAPLX <b>APPLE</b></span><span class="tick">METAX <b>META</b></span>
-    <span class="tick">COINX <b>COINBASE</b></span><span class="tick">MSTRX <b>MICROSTRATEGY</b></span>
-    <span class="tick">HOODX <b>ROBINHOOD</b></span><span class="tick">GOOGLX <b>GOOGLE</b></span>
-    <span class="tick">QQQX <b>QQQ</b></span><span class="tick">PLTRX <b>PALANTIR</b></span>
-  </div>
+<!--
+  Ticker: the live list of quote pairs you can launch against, from StonkFun.
+
+  Empty on purpose. It used to hold twelve hardcoded symbols; those were real,
+  but a fixed list is a claim about upstream that nothing keeps true — pairs are
+  added and delisted, and there are ~210 of them. main.js fills this from
+  /api/live and only then unhides the strip, so with JS off or the API down the
+  page shows no pair list rather than a stale one.
+-->
+<div class="ticker" id="ticker" aria-hidden="true" hidden>
+  <div class="ticker-track" id="ticker-track"></div>
 </div>
 
 <main id="main">

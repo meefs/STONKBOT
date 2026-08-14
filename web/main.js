@@ -98,6 +98,64 @@
    * innerHTML. There is no path here that turns API data into markup.
    */
 
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  /* ---------------- header ticker ----------------
+   *
+   * The live list of quote pairs a token can be launched against. Previously
+   * twelve hardcoded symbols; now whatever StonkFun currently lists.
+   *
+   * The strip stays hidden until real pairs arrive, so a failed fetch shows no
+   * pair list rather than a stale one.
+   */
+
+  var tickerEl = document.getElementById('ticker');
+  var trackEl = document.getElementById('ticker-track');
+
+  // Scroll speed in px/sec. Held constant by deriving the animation duration
+  // from the rendered width, so adding pairs upstream lengthens the strip
+  // instead of speeding it up.
+  var TICKER_PX_PER_SEC = 45;
+
+  function renderTicker(pairs) {
+    if (!tickerEl || !trackEl) return;
+
+    if (!pairs || !pairs.length) {
+      tickerEl.hidden = true;
+      return;
+    }
+
+    trackEl.textContent = '';
+    var frag = document.createDocumentFragment();
+
+    // Rendered twice: the keyframe translates the track by -50%, which only
+    // loops seamlessly if the second half repeats the first.
+    for (var pass = 0; pass < 2; pass++) {
+      pairs.forEach(function (pair) {
+        // textContent throughout — these are upstream-controlled strings.
+        var tick = el('span', 'tick', pair.symbol);
+        if (pair.name) tick.appendChild(el('b', null, pair.name));
+        frag.appendChild(tick);
+      });
+    }
+
+    trackEl.appendChild(frag);
+    tickerEl.hidden = false;
+
+    var half = trackEl.scrollWidth / 2;
+    if (half > 0) {
+      trackEl.style.animationDuration =
+        Math.max(30, Math.round(half / TICKER_PX_PER_SEC)) + 's';
+    }
+  }
+
+  /* ---------------- live market board ---------------- */
+
   var rowsEl = document.getElementById('token-rows');
   var stampEl = document.getElementById('live-stamp');
   var statsEl = document.getElementById('live-stats');
@@ -120,13 +178,6 @@
     function compactNum(value) {
       var n = Number(value) || 0;
       return n >= 1000 ? n.toLocaleString('en-US') : String(n);
-    }
-
-    function el(tag, className, text) {
-      var node = document.createElement(tag);
-      if (className) node.className = className;
-      if (text !== undefined && text !== null) node.textContent = String(text);
-      return node;
     }
 
     function monogram(symbol) {
@@ -209,6 +260,10 @@
         el('p', 'board-msg err', "Live data is unavailable right now. StonkFun's API isn't responding.")
       );
       setStamp('Offline');
+      // The strip goes with it. It carries no numbers, so nothing about it can
+      // literally go stale — but a ticker still scrolling above a board that
+      // says "Offline" reads as live data, and that is the thing to avoid.
+      renderTicker(null);
     }
 
     function load() {
@@ -222,6 +277,7 @@
           cache = data;
           renderStats(data.stats);
           renderTokens(data[activeView]);
+          renderTicker(data.pairs);
           setStamp(
             'Updated ' +
               new Date(data.fetchedAt || Date.now()).toLocaleTimeString([], {

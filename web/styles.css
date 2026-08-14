@@ -43,6 +43,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* While the beta strip is showing it is sticky too, so the header that an
+   anchor has to clear is ~46px taller. Scoped to the gated state: when
+   data-cta="live" the strip is display:none and 84px is right again. */
+html[data-cta="soon"] { scroll-padding-top: 130px; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -200,13 +205,24 @@ main, .nav, .ticker, .footer { position: relative; z-index: 1; }
 
 @keyframes scroll-x {
   from { transform: translateX(0); }
-  /* The list is duplicated in markup, so -50% is a seamless loop. */
+  /* main.js renders the pair list twice, so -50% is a seamless loop.
+     The duration is set inline from the rendered width, keeping the speed
+     constant however many pairs StonkFun is listing. */
   to   { transform: translateX(-50%); }
+}
+
+/* An indefinitely scrolling strip is exactly what this setting is for. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
 }
 
 /* ============================ HERO ============================ */
 
-.hero { padding: clamp(56px, 9vw, 104px) 0 clamp(48px, 7vw, 88px); }
+/* Top padding is deliberately small. The header stack (nav + beta strip +
+   ticker) already occupies ~148px, and at the old clamp ceiling of 104px the
+   headline started ~300px down and the primary CTA fell below the fold on a
+   1366x768 laptop. Bottom padding is unchanged. */
+.hero { padding: clamp(32px, 4vw, 48px) 0 clamp(48px, 7vw, 88px); }
 
 .hero-inner {
   display: grid; grid-template-columns: 1.15fr 0.85fr;
@@ -246,6 +262,19 @@ h1 {
 .hero-note {
   margin: 0; font-size: 13.5px; color: var(--text-mute); max-width: 46ch;
   padding-left: 14px; border-left: 2px solid var(--line);
+}
+
+/* Short desktop viewports — the common laptop case. A 1366x768 screen is
+   ~640px of actual viewport once browser chrome is subtracted, and at the full
+   type scale the CTA lands below it. Tightened only here, so normal-height
+   screens keep the intended proportions. Height-based, not width-based:
+   the fold is a height problem. */
+@media (min-width: 901px) and (max-height: 800px) {
+  .hero { padding-top: 28px; padding-bottom: 48px; }
+  .eyebrow { margin-bottom: 16px; }
+  h1 { font-size: clamp(2.2rem, 4.6vw, 3.4rem); margin-bottom: 18px; }
+  .lede { margin-bottom: 22px; }
+  .cta-row { margin-bottom: 20px; }
 }
 .hero-note em { color: var(--text-dim); font-style: italic; }
 
@@ -722,8 +751,15 @@ tbody td { color: var(--text-dim); }
   cursor: default;
 }
 
-/* Strip under the nav. States no date, deliberately — see HANDOFF §5c. */
+/* Strip under the nav. States no date, deliberately — see HANDOFF §5c.
+
+   Sticky, pinned directly beneath the nav, so the header moves as one block.
+   Unsticky it slid up underneath the translucent nav on scroll, which read as
+   the nav itself moving. `top` is the nav's height; z-index sits just under
+   the nav's 100 so the nav wins any overlap. Opaque background is required —
+   content scrolls behind it. */
 .beta-strip {
+  position: sticky; top: 64px; z-index: 99;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }

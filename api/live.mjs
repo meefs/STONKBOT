@@ -25,7 +25,16 @@ const VIEWS = {
   newest: '/tokens?sort=newest&pageSize=8',
   graduated: '/tokens?status=graduated&sort=volume&pageSize=6',
   volume: '/tokens?sort=volume&pageSize=6',
+  pairs: '/pairs?launchable=true',
 };
+
+// The header ticker previously hardcoded twelve pair symbols. They happened to
+// be real, but a fixed list drifts: pairs get added and delisted upstream, and
+// there are currently ~210 of them, so the hardcoded dozen was both stale-able
+// and unrepresentative. It is now driven from this view. Capped because the
+// ticker only needs enough to fill a scrolling strip, and the full list is
+// payload the page would never show.
+const TICKER_PAIRS = 48;
 
 const UPSTREAM_TIMEOUT_MS = 6000;
 
@@ -71,6 +80,19 @@ function slimToken(token) {
   };
 }
 
+/** A quote pair, reduced to what the ticker renders. Drops mints, logo URLs
+ *  and token-program ids — the strip shows a symbol and a name. */
+function slimPair(pair) {
+  if (!pair || typeof pair !== 'object') return null;
+  const symbol = String(pair.symbol || '');
+  if (!symbol) return null;
+  return {
+    symbol,
+    name: String(pair.name || ''),
+    categoryLabel: String(pair.categoryLabel || ''),
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -78,11 +100,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [stats, newest, graduated, volume] = await Promise.allSettled([
+    const [stats, newest, graduated, volume, pairs] = await Promise.allSettled([
       fetchJson(VIEWS.stats),
       fetchJson(VIEWS.newest),
       fetchJson(VIEWS.graduated),
       fetchJson(VIEWS.volume),
+      fetchJson(VIEWS.pairs),
     ]);
 
     const statsData = stats.status === 'fulfilled' ? stats.value : null;
@@ -108,6 +131,13 @@ export default async function handler(req, res) {
       newest: tokensOf(newest),
       graduated: tokensOf(graduated),
       volume: tokensOf(volume),
+      pairs:
+        pairs.status === 'fulfilled'
+          ? (pairs.value?.pairs || [])
+              .map(slimPair)
+              .filter(Boolean)
+              .slice(0, TICKER_PAIRS)
+          : [],
       fetchedAt: new Date().toISOString(),
     };
 
