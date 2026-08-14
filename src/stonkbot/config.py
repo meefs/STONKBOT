@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     user_launches_per_hour: int = Field(
         default=3, validation_alias=_both("user_launches_per_hour")
     )
+    # Gates *speech*, which dry_run does not. A dry run still posts publicly —
+    # that is how a test run replied to a stranger. Set this while testing
+    # against the live timeline: mentions are read and handled, replies are
+    # logged instead of posted.
+    observe_only: bool = Field(default=False, validation_alias=_both("observe_only"))
     data_dir: str = Field(default="data", validation_alias=_both("data_dir"))
     # Set → state lives in Postgres (serverless, no durable disk). Unset →
     # SQLite under data_dir. Also accepts POSTGRES_URL, which is what the

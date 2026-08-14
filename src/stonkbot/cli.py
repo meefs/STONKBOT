@@ -112,6 +112,75 @@ def doctor() -> None:
     click.echo("\nAll checks passed.")
 
 
+@main.command("state")
+def state_cmd() -> None:
+    """Show the poll cursor and what the bot has already handled.
+
+    The cursor is the reason a restart does not re-answer the whole timeline,
+    which also means a run that dies before you see its log has still moved it.
+    This is how you find out what it consumed.
+    """
+    from .state import get_since_id, seen_recent, seen_total
+
+    since = get_since_id()
+    click.echo(f"since_id: {since or '(unset — next poll starts at the timeline head)'}")
+    click.echo(f"handled mentions: {seen_total()}")
+
+    recent = seen_recent(10)
+    if recent:
+        click.echo("\nmost recently handled:")
+        for mention_id, seen_at in recent:
+            click.echo(f"  {mention_id}  {seen_at}")
+            click.echo(f"    https://x.com/i/status/{mention_id}")
+
+    try:
+        wallets = vault_encryption_status()["total_wallets"]
+        click.echo(f"\nagent wallets: {wallets}")
+    except Exception:
+        click.echo("\nagent wallets: (vault not created yet)")
+
+
+@main.command("cursor")
+@click.option("--set", "set_to", type=int, help="Move the cursor to this mention id.")
+@click.option(
+    "--rewind",
+    is_flag=True,
+    help="Clear the cursor. The next poll re-reads recent mentions — and will "
+    "answer any it has not already marked handled.",
+)
+@click.option(
+    "--forget",
+    is_flag=True,
+    help="With --rewind, also clear the handled set, so mentions can be "
+    "answered again. Destructive: this is what allows a duplicate reply.",
+)
+def cursor_cmd(set_to: int | None, rewind: bool, forget: bool) -> None:
+    """Move or clear the poll cursor."""
+    from .state import clear_seen, get_since_id, set_since_id, unset_since_id
+
+    if set_to is not None:
+        # set_since_id only moves forward, so a manual rewind has to clear
+        # first or a lower value is silently ignored.
+        unset_since_id()
+        set_since_id(set_to)
+        click.echo(f"cursor set to {get_since_id()}")
+        return
+
+    if rewind:
+        unset_since_id()
+        click.echo("cursor cleared")
+        if forget:
+            removed = clear_seen()
+            click.echo(f"handled set cleared ({removed} rows)")
+            click.echo(
+                "\n!! Those mentions can now be answered again. Run with "
+                "STONKBOT_OBSERVE_ONLY=true first unless you want real replies."
+            )
+        return
+
+    click.echo(f"cursor: {get_since_id() or '(unset)'}")
+
+
 @main.command("pairs")
 def list_pairs_cmd() -> None:
     """List launchable quote pairs."""

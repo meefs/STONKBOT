@@ -82,6 +82,43 @@ def mark_seen(mention_id: str) -> bool:
         return cur.rowcount > 0
 
 
+def unset_since_id() -> None:
+    """Clear the cursor so the next poll starts from the timeline head again.
+
+    Separate from :func:`set_since_id` on purpose — that one refuses to move
+    backwards, which is right for the loop and wrong for an operator who needs
+    to undo a run that consumed mentions before anyone could read its log.
+    """
+    with _conn() as c:
+        c.execute("DELETE FROM kv WHERE key='since_id'")
+
+
+def seen_total() -> int:
+    with _conn() as c:
+        row = c.execute("SELECT COUNT(*) FROM seen_mentions").fetchone()
+    return int(row[0] if row else 0)
+
+
+def seen_recent(limit: int = 10) -> list[tuple[str, str]]:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT mention_id, seen_at FROM seen_mentions "
+            "ORDER BY seen_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [(r[0], r[1]) for r in rows]
+
+
+def clear_seen() -> int:
+    """Forget every handled mention. Returns how many rows went.
+
+    Destructive: the handled set is what stops a mention being answered twice.
+    """
+    with _conn() as c:
+        cursor = c.execute("DELETE FROM seen_mentions")
+        return int(cursor.rowcount or 0)
+
+
 def prune_seen(keep: int = 5000) -> None:
     """Bound the table so it cannot grow without limit."""
     with _conn() as c:

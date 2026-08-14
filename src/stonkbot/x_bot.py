@@ -101,9 +101,22 @@ def _resolve_bot(api: Any) -> tuple[str, str]:
 
 
 def reply(api: Any, status_id: str, text: str) -> None:
+    """Post a reply, unless observe-only is set.
+
+    ``dry_run`` gates SOL, not speech: a dry run still posts publicly, which is
+    how a test run answered a stranger. ``observe_only`` is the separate switch
+    that gates posting, so the loop can be exercised against the live timeline
+    without saying anything.
+    """
+    body = text[:MAX_REPLY_LENGTH]
+
+    if get_settings().observe_only:
+        log.info("OBSERVE-ONLY, not posting. Would reply to %s: %r", status_id, body)
+        return
+
     try:
         api.create_tweet(
-            text=text[:MAX_REPLY_LENGTH],
+            text=body,
             in_reply_to_tweet_id=status_id,
             user_auth=True,
         )
