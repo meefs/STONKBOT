@@ -211,9 +211,22 @@ main, .nav, .ticker, .footer { position: relative; z-index: 1; }
   to   { transform: translateX(-50%); }
 }
 
-/* An indefinitely scrolling strip is exactly what this setting is for. */
+/* An indefinitely scrolling strip is exactly what this setting is for.
+
+   Stopping the animation alone would strand the reader with whatever pairs
+   happened to fit the viewport — about a dozen of ~48. So the strip becomes
+   manually scrollable instead, and main.js renders the list once rather than
+   twice (the duplicate half only exists to make the -50% loop seamless). */
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }
+  .ticker {
+    overflow-x: auto;
+    /* The edge fade implies "there's more, it's moving". Nothing is moving
+       here, and it would obscure the first and last pair while scrolling. */
+    mask-image: none;
+    -webkit-mask-image: none;
+    scrollbar-width: thin;
+  }
 }
 
 /* ============================ HERO ============================ */

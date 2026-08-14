@@ -134,8 +134,12 @@
     var frag = document.createDocumentFragment();
 
     // Rendered twice: the keyframe translates the track by -50%, which only
-    // loops seamlessly if the second half repeats the first.
-    for (var pass = 0; pass < 2; pass++) {
+    // loops seamlessly if the second half repeats the first. Under reduced
+    // motion there is no animation and the strip is manually scrollable, so
+    // the duplicate half would just be the same list a second time.
+    var passes = reduceMotion ? 1 : 2;
+
+    for (var pass = 0; pass < passes; pass++) {
       pairs.forEach(function (pair) {
         // textContent throughout — these are upstream-controlled strings.
         var tick = el('span', 'tick', pair.symbol);
@@ -146,6 +150,8 @@
 
     trackEl.appendChild(frag);
     tickerEl.hidden = false;
+
+    if (reduceMotion) return;
 
     var half = trackEl.scrollWidth / 2;
     if (half > 0) {
